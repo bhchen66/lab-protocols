@@ -52,6 +52,9 @@ thead th[aria-sort="ascending"] .arrow::after{content:"▲";color:var(--yellow-d
 thead th[aria-sort="descending"] .arrow::after{content:"▼";color:var(--yellow-deep)}
 thead th.sortable:not([aria-sort]) .arrow::after{content:"⇅";opacity:.4}
 td.r,th.r{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+th.no,td.no{width:1%;white-space:nowrap;text-align:right;padding-right:4px;
+  font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+thead th.no{color:var(--ink-soft);font-weight:600}
 tbody tr:hover{background:color-mix(in srgb,var(--teal) 5%,transparent)}
 tr.grouphead td{background:var(--paper);font-weight:700;font-family:var(--font-display);
   border-bottom:1px solid var(--line);position:sticky;top:42px;z-index:1}
@@ -150,7 +153,8 @@ footer .lic b{color:var(--ink)}
 
   /* ---------- 表頭 ---------- */
   function head(){
-    var h = '<th scope="col" class="sortable" data-k="title">講義<span class="arrow"></span></th>';
+    var h = '<th scope="col" class="no">#</th>' +
+            '<th scope="col" class="sortable" data-k="title">講義<span class="arrow"></span></th>';
     cols.forEach(function(c){
       var cls = (c.sortable !== false ? "sortable " : "") + (c.align === "right" ? "r" : "");
       h += '<th scope="col" class="' + cls.trim() + '" data-k="' + c.key + '">' +
@@ -204,7 +208,7 @@ footer .lic b{color:var(--ink)}
       else th.removeAttribute("aria-sort");
     });
 
-    var html = "", lastG = null, span = cols.length + 1;
+    var html = "", lastG = null, span = cols.length + 2, seq = 0;
     rows.forEach(function(e){
       if(grouped && groupKey){
         var g = val(e, groupKey) || "未分類";
@@ -215,7 +219,9 @@ footer .lic b{color:var(--ink)}
           lastG = g;
         }
       }
+      seq += 1;
       html += "<tr>";
+      html += '<td class="no">' + (seq < 10 ? "0" + seq : seq) + "</td>";
       html += '<td><a class="ttl" href="' + encodeURI(e.file) + '">' + esc(e.title || e.file) + "</a>" +
               '<span class="fname">' + esc(e.file) + "</span>";
       if(Array.isArray(e.superseded) && e.superseded.length){
