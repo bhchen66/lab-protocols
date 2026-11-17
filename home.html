@@ -65,7 +65,10 @@ tr.grouphead .n{font-family:var(--font-body);font-weight:400;color:var(--ink-sof
 .old a{display:block;margin:4px 0 0 14px}
 .empty{padding:40px 20px;text-align:center;color:var(--ink-soft)}
 footer{margin:28px 0 50px;padding-top:16px;border-top:1px solid var(--line);
-  color:var(--ink-soft);font-size:.85rem;display:flex;gap:14px;flex-wrap:wrap}
+  color:var(--ink-soft);font-size:.85rem}
+footer .frow{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+footer .lic{margin-top:10px;max-width:84ch;line-height:1.65}
+footer .lic b{color:var(--ink)}
 .badge{display:inline-block;font-size:.75rem;padding:1px 8px;border-radius:999px;border:1px solid var(--line)}
 @media (max-width:640px){
   thead th{position:static}
@@ -77,7 +80,7 @@ footer{margin:28px 0 50px;padding-top:16px;border-top:1px solid var(--line);
 <body>
 <header class="top">
   <div class="wrap">
-    <div class="eyebrow">實驗室教學資源</div>
+    <div class="eyebrow">BHC實驗室教學資源</div>
     <h1 id="ttl">實驗操作互動講義</h1>
     <p class="lede" id="sub"></p>
   </div>
@@ -100,9 +103,16 @@ footer{margin:28px 0 50px;padding-top:16px;border-top:1px solid var(--line);
   <div class="empty" id="empty" hidden>沒有符合條件的講義。</div>
 
   <footer>
-    <span>清單更新：<b id="upd">—</b></span>
-    <span class="badge">唯讀頁面</span>
-    <span>本頁僅供瀏覽，無任何上傳或編輯功能。</span>
+    <div class="frow">
+      <span>清單更新：<b id="upd">—</b></span>
+      <span class="badge">唯讀頁面</span>
+      <span>本頁僅供瀏覽，無任何上傳或編輯功能。</span>
+      <a href="https://github.com/bhchen66/lab-protocols">專案說明與勘誤</a>
+    </div>
+    <p class="lic"><b>授權</b>　本站講義由私人製作，依 <a rel="license"
+      href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh_TW">創用 CC 姓名標示－非商業性－相同方式分享 4.0 國際（CC BY-NC-SA 4.0）</a>
+      授權條款釋出。著作人未具名，轉載或改作請標示來源網址。
+      內容為教學輔助用途，頁面中的數值為模擬數據；實際操作請依所屬實驗室的 SOP。</p>
   </footer>
 </main>
 
