@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>實驗操作互動講義</title>
+<meta name="robots" content="index,follow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16323a; --ink-soft:#4a626a; --paper:#f4f7f6; --surface:#ffffff; --line:#d3dedc;
+  --teal:#1e6e78; --yellow:#f2c230; --yellow-deep:#b98a00; --violet:#6b5ca5;
+  --font-display:"Noto Serif TC","Songti TC",serif;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#e2ecea;--ink-soft:#9fb4b1;--paper:#0f1a1d;--surface:#16252a;--line:#2a3d42;
+    --teal:#5fb7c1;--yellow:#f5cd4a;--yellow-deep:#f5cd4a;--violet:#a99ada;color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.7}
+a{color:var(--teal)}
+h1{font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2rem);margin:0;line-height:1.35}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+header.top{padding:28px 0 20px;border-bottom:1px solid var(--line);background:var(--surface)}
+.eyebrow{font-size:.8rem;letter-spacing:.08em;color:var(--teal);font-weight:700}
+.lede{max-width:72ch;color:var(--ink-soft);margin:8px 0 0}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:20px 0 14px}
+input[type=search]{font:inherit;flex:1 1 260px;min-width:0;padding:9px 13px;border:1px solid var(--line);
+  border-radius:8px;background:var(--surface);color:var(--ink)}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);padding:8px 14px}
+button[aria-pressed="true"]{background:color-mix(in srgb,var(--yellow) 32%,transparent);border-color:var(--yellow-deep);font-weight:600}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.count{color:var(--ink-soft);font-size:.88rem;margin-left:auto}
+.tablewrap{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.94rem;min-width:720px}
+th,td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{position:sticky;top:0;background:var(--surface);z-index:2;white-space:nowrap;
+  font-weight:700;border-bottom:2px solid var(--line)}
+thead th.sortable{cursor:pointer;user-select:none}
+thead th.sortable:hover{color:var(--teal)}
+thead th .arrow{color:var(--ink-soft);font-size:.78rem;margin-left:4px}
+thead th[aria-sort="ascending"] .arrow::after{content:"▲";color:var(--yellow-deep)}
+thead th[aria-sort="descending"] .arrow::after{content:"▼";color:var(--yellow-deep)}
+thead th.sortable:not([aria-sort]) .arrow::after{content:"⇅";opacity:.4}
+td.r,th.r{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:hover{background:color-mix(in srgb,var(--teal) 5%,transparent)}
+tr.grouphead td{background:var(--paper);font-weight:700;font-family:var(--font-display);
+  border-bottom:1px solid var(--line);position:sticky;top:42px;z-index:1}
+tr.grouphead .n{font-family:var(--font-body);font-weight:400;color:var(--ink-soft);font-size:.85rem;margin-left:8px}
+.ttl{font-weight:600;text-decoration:none;display:inline-block}
+.ttl:hover{text-decoration:underline}
+.fname{display:block;font-size:.78rem;color:var(--ink-soft);font-family:var(--font-mono);
+  word-break:break-all;margin-top:2px}
+.old{margin-top:6px;font-size:.82rem}
+.old summary{cursor:pointer;color:var(--ink-soft)}
+.old a{display:block;margin:4px 0 0 14px}
+.empty{padding:40px 20px;text-align:center;color:var(--ink-soft)}
+footer{margin:28px 0 50px;padding-top:16px;border-top:1px solid var(--line);
+  color:var(--ink-soft);font-size:.85rem;display:flex;gap:14px;flex-wrap:wrap}
+.badge{display:inline-block;font-size:.75rem;padding:1px 8px;border-radius:999px;border:1px solid var(--line)}
+@media (max-width:640px){
+  thead th{position:static}
+  tr.grouphead td{position:static}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="eyebrow">實驗室教學資源</div>
+    <h1 id="ttl">實驗操作互動講義</h1>
+    <p class="lede" id="sub"></p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="搜尋細胞株、實驗主題、刺激方式…" aria-label="搜尋講義">
+    <button id="grp" aria-pressed="true">依細胞株分組</button>
+    <button id="reset">清除</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="tablewrap">
+    <table id="tbl">
+      <thead><tr id="thr"></tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+  <div class="empty" id="empty" hidden>沒有符合條件的講義。</div>
+
+  <footer>
+    <span>清單更新：<b id="upd">—</b></span>
+    <span class="badge">唯讀頁面</span>
+    <span>本頁僅供瀏覽，無任何上傳或編輯功能。</span>
+  </footer>
+</main>
+
+<script src="catalog.js"></script>
+<script>
+(function(){
+  var C = window.CATALOG;
+  var tb = document.getElementById("tb"),
+      thr = document.getElementById("thr"),
+      empty = document.getElementById("empty"),
+      cnt = document.getElementById("count"),
+      q = document.getElementById("q"),
+      bGrp = document.getElementById("grp"),
+      bRst = document.getElementById("reset");
+
+  if(!C || !Array.isArray(C.entries)){
+    document.querySelector(".tablewrap").hidden = true;
+    empty.hidden = false;
+    empty.textContent = "讀不到講義清單（catalog.js）。請確認該檔與本頁放在同一個資料夾。";
+    return;
+  }
+
+  if(C.meta){
+    if(C.meta.title){ document.getElementById("ttl").textContent = C.meta.title; document.title = C.meta.title; }
+    if(C.meta.subtitle) document.getElementById("sub").textContent = C.meta.subtitle;
+    if(C.meta.updated) document.getElementById("upd").textContent = C.meta.updated;
+  }
+
+  var cols = (C.columns || []).filter(function(c){ return c.visible !== false; });
+  var groupKey = (C.columns || []).filter(function(c){ return c.group; }).map(function(c){ return c.key; })[0] || null;
+
+  var sortKey = groupKey || (cols[0] && cols[0].key) || "title";
+  var sortDir = 1;
+  var grouped = !!groupKey;
+
+  /* ---------- 表頭 ---------- */
+  function head(){
+    var h = '<th scope="col" class="sortable" data-k="title">講義<span class="arrow"></span></th>';
+    cols.forEach(function(c){
+      var cls = (c.sortable !== false ? "sortable " : "") + (c.align === "right" ? "r" : "");
+      h += '<th scope="col" class="' + cls.trim() + '" data-k="' + c.key + '">' +
+           esc(c.label) + (c.sortable !== false ? '<span class="arrow"></span>' : '') + '</th>';
+    });
+    thr.innerHTML = h;
+    thr.querySelectorAll("th.sortable").forEach(function(th){
+      th.addEventListener("click", function(){
+        var k = th.dataset.k;
+        if(sortKey === k){ sortDir = -sortDir; } else { sortKey = k; sortDir = 1; }
+        render();
+      });
+    });
+  }
+
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(m){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m];
+    });
+  }
+  function val(e,k){ return k === "title" ? (e.title || e.file || "") : (e[k] == null ? "" : e[k]); }
+
+  /* ---------- 排序 ---------- */
+  function cmp(a,b,k){
+    var x = String(val(a,k)), y = String(val(b,k));
+    if(x === "" && y !== "") return 1;      // 空值永遠排在最後
+    if(y === "" && x !== "") return -1;
+    return x.localeCompare(y, "zh-Hant", { numeric:true, sensitivity:"base" });
+  }
+
+  /* ---------- 繪製 ---------- */
+  function render(){
+    var term = q.value.trim().toLowerCase();
+    var rows = C.entries.filter(function(e){
+      if(!term) return true;
+      var hay = [e.title, e.file].concat(cols.map(function(c){ return e[c.key]; })).join(" ").toLowerCase();
+      return hay.indexOf(term) !== -1;
+    });
+
+    rows.sort(function(a,b){
+      if(grouped && groupKey && sortKey !== groupKey){
+        var g = cmp(a,b,groupKey);
+        if(g !== 0) return g;
+      }
+      var r = cmp(a,b,sortKey) * sortDir;
+      return r !== 0 ? r : cmp(a,b,"title");
+    });
+
+    thr.querySelectorAll("th").forEach(function(th){
+      if(th.dataset.k === sortKey) th.setAttribute("aria-sort", sortDir > 0 ? "ascending" : "descending");
+      else th.removeAttribute("aria-sort");
+    });
+
+    var html = "", lastG = null, span = cols.length + 1;
+    rows.forEach(function(e){
+      if(grouped && groupKey){
+        var g = val(e, groupKey) || "未分類";
+        if(g !== lastG){
+          var n = rows.filter(function(r){ return (val(r,groupKey) || "未分類") === g; }).length;
+          html += '<tr class="grouphead"><td colspan="' + span + '">' + esc(g) +
+                  '<span class="n">' + n + ' 份</span></td></tr>';
+          lastG = g;
+        }
+      }
+      html += "<tr>";
+      html += '<td><a class="ttl" href="' + encodeURI(e.file) + '">' + esc(e.title || e.file) + "</a>" +
+              '<span class="fname">' + esc(e.file) + "</span>";
+      if(Array.isArray(e.superseded) && e.superseded.length){
+        html += '<details class="old"><summary>舊版 ' + e.superseded.length + ' 份</summary>';
+        e.superseded.forEach(function(o){
+          html += '<a href="' + encodeURI(o.file) + '">' + esc(o.version || "舊版") +
+                  (o.updated ? "（" + esc(o.updated) + "）" : "") + "</a>";
+        });
+        html += "</details>";
+      }
+      html += "</td>";
+      cols.forEach(function(c){
+        html += '<td' + (c.align === "right" ? ' class="r"' : "") + ">" +
+                (val(e, c.key) === "" ? '<span style="opacity:.4">—</span>' : esc(val(e, c.key))) + "</td>";
+      });
+      html += "</tr>";
+    });
+
+    tb.innerHTML = html;
+    empty.hidden = rows.length > 0;
+    document.querySelector(".tablewrap").hidden = rows.length === 0;
+    cnt.textContent = rows.length + " / " + C.entries.length + " 份講義";
+  }
+
+  q.addEventListener("input", render);
+  bGrp.addEventListener("click", function(){
+    grouped = !grouped;
+    bGrp.setAttribute("aria-pressed", String(grouped));
+    bGrp.textContent = grouped ? "依細胞株分組" : "平列顯示";
+    render();
+  });
+  bRst.addEventListener("click", function(){
+    q.value = ""; sortKey = groupKey || "title"; sortDir = 1; render(); q.focus();
+  });
+
+  if(!groupKey){ bGrp.hidden = true; grouped = false; }
+  head();
+  render();
+})();
+</script>
+</body>
+</html>

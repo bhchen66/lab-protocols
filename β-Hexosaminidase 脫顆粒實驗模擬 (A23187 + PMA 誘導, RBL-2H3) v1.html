@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A23187 + PMA 脫顆粒實驗模擬 v.1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a lab notebook — narrow reading column for principle, wide "bench" with plate + step console; accent = p-nitrophenolate yellow */
+:root{
+  --ink:#16323a;
+  --ink-soft:#4a626a;
+  --paper:#f4f7f6;
+  --surface:#ffffff;
+  --line:#d3dedc;
+  --teal:#1e6e78;
+  --yellow:#f2c230;
+  --yellow-deep:#b98a00;
+  --good:#2f8a4e;
+  --bad:#b8423a;
+  --violet:#6b5ca5;
+  --well-empty:#e9efee;
+  --cell:#c9a7c9;
+  --font-display:"Noto Serif TC","Songti TC",serif;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#e2ecea;--ink-soft:#9fb4b1;--paper:#0f1a1d;--surface:#16252a;--line:#2a3d42;
+    --teal:#5fb7c1;--yellow:#f5cd4a;--yellow-deep:#f5cd4a;--good:#5ec27f;--bad:#e2756c;
+    --violet:#a99ada;--well-empty:#22353a;--cell:#8f6f93;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e2ecea;--ink-soft:#9fb4b1;--paper:#0f1a1d;--surface:#16252a;--line:#2a3d42;
+  --teal:#5fb7c1;--yellow:#f5cd4a;--yellow-deep:#f5cd4a;--good:#5ec27f;--bad:#e2756c;
+  --violet:#a99ada;--well-empty:#22353a;--cell:#8f6f93;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.75}
+a{color:var(--teal)}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;line-height:1.35;margin:0}
+h1{font-size:clamp(1.6rem,3.2vw,2.2rem)}
+h2{font-size:1.5rem}
+h3{font-size:1.1rem}
+p{margin:0}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+header.top{padding:28px 20px 18px;border-bottom:1px solid var(--line);background:var(--surface)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.lede{max-width:68ch;color:var(--ink-soft);margin-top:8px}
+.verpill{display:inline-block;font-family:var(--font-mono);font-size:.78rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft);margin-left:8px;vertical-align:middle}
+nav.tabs{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+nav.tabs .wrap{display:flex;gap:4px;overflow-x:auto}
+nav.tabs a{padding:12px 14px;text-decoration:none;color:var(--ink-soft);border-bottom:3px solid transparent;white-space:nowrap;font-weight:500}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--yellow)}
+main section{display:none;padding:28px 0 60px}
+main section.active{display:block}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.reading{max-width:68ch}
+.eyebrow{font-size:.8rem;letter-spacing:.08em;color:var(--teal);font-weight:700}
+.note{font-size:.88rem;color:var(--ink-soft)}
+.cite{font-size:.78rem;color:var(--ink-soft);vertical-align:super}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px}
+button.primary{background:var(--teal);color:var(--surface);border-color:var(--teal);font-weight:600}
+button[aria-pressed="true"]{background:color-mix(in srgb,var(--yellow) 32%,transparent);border-color:var(--yellow-deep);font-weight:600}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type=range]{width:100%;accent-color:var(--teal)}
+input[type=number]{font:inherit;font-family:var(--font-mono);width:6.5em;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
+.eq{font-family:var(--font-mono);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 14px;overflow-x:auto;font-size:.92rem}
+svg text{fill:var(--ink);font-family:var(--font-body)}
+#pathsvg g{transition:opacity .45s}
+#pathsvg g.dim{opacity:.16}
+/* bench */
+.bench{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.bench{grid-template-columns:1fr}}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;counter-reset:s}
+.steps li{display:flex;gap:10px;align-items:baseline;padding:4px 8px;border-radius:6px;color:var(--ink-soft);font-size:.92rem}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--font-mono);min-width:1.6em;text-align:right}
+.steps li.done{color:var(--ink)}
+.steps li.done::after{content:"✓";color:var(--good);margin-left:auto}
+.steps li.now{background:var(--paper);color:var(--ink);font-weight:700;border-left:3px solid var(--yellow)}
+.plate{display:grid;gap:6px;padding:12px;border-radius:12px;background:var(--paper);border:1px solid var(--line)}
+.plate .lab{font-size:.75rem;color:var(--ink-soft);text-align:center;align-self:center}
+.well{aspect-ratio:1;border-radius:50%;background:var(--well-empty);border:2px solid var(--line);position:relative;transition:background .9s,box-shadow .9s}
+.well.cells::after{content:"";position:absolute;inset:22%;border-radius:50%;background:radial-gradient(circle,var(--cell) 0 30%,transparent 32%) 0 0/8px 8px;opacity:.9}
+.well.stim{border-color:var(--violet)}
+.platehead{display:flex;justify-content:space-between;align-items:baseline;font-size:.9rem;font-weight:600}
+.choice{display:flex;flex-direction:column;gap:8px}
+.choice button{text-align:left}
+.feedback{border-radius:8px;padding:10px 12px;font-size:.92rem}
+.feedback.ok{background:color-mix(in srgb,var(--good) 14%,transparent);border:1px solid var(--good)}
+.feedback.no{background:color-mix(in srgb,var(--bad) 12%,transparent);border:1px solid var(--bad)}
+.timer{height:8px;background:var(--well-empty);border-radius:4px;overflow:hidden}
+.timer > div{height:100%;width:0;background:var(--yellow)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--ink-soft)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;background:var(--c)}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left}
+td.num,th.num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+.gloss td:first-child{font-family:var(--font-mono);white-space:nowrap}
+.pill{display:inline-block;font-size:.75rem;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft)}
+.sim-tag{display:inline-block;font-size:.78rem;font-weight:700;padding:2px 8px;border-radius:4px;background:color-mix(in srgb,var(--yellow) 30%,transparent);color:var(--ink)}
+.warn{border-left:4px solid var(--bad);background:color-mix(in srgb,var(--bad) 8%,transparent);border-radius:8px;padding:12px 16px}
+ol.refs{padding-left:1.3em;display:flex;flex-direction:column;gap:8px;font-size:.92rem}
+.qa{display:flex;flex-direction:column;gap:12px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
+details summary{cursor:pointer;font-weight:600}
+details p{margin-top:8px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ===== lab-print-style-v2 — 列印（Cmd-P）專用，自動注入 ===== */
+/* 同時相容兩種版型：分頁式（nav.tabs + 隱藏 section）與側欄式（nav.side + .shell） */
+@media print{
+  :root{--ink:#000;--ink-soft:#3a3a3a;--muted:#3a3a3a;--bg:#fff;--paper:#fff;
+        --surface:#fff;--surface2:#f2f2f2;--line:#bbb;color-scheme:light}
+  @page{margin:15mm 13mm}
+  body{font-size:10.5pt;background:#fff}
+  /* 版面攤平 */
+  .shell{display:block!important}
+  main{padding:0!important;gap:0!important;display:block!important}
+  nav,nav.side,nav.tabs{display:none!important}
+  header.top,header.hero{border-bottom:2px solid #000;padding:0 0 10px;margin-bottom:10px}
+  /* 分頁式：讓被隱藏的 section 全部顯示 */
+  main section{display:block!important;break-before:page;padding:0 0 8px}
+  main section:first-of-type{break-before:auto}
+  section.unit{break-before:page}
+  section.unit:first-of-type{break-before:auto}
+  h2{margin-top:12px}
+  .unit-head{border-bottom:2px solid #000}
+  /* 隱藏互動控制項，但保留測驗選項與內容 */
+  .controls,.seg,.btn,.scorebar,.glos-tools,.timer,.choice,
+  #console,#regen,#checkAns,#showAns,#qReset,
+  input[type=range],input[type=number],input[type=search],input[type=text],select
+    {display:none!important}
+  .opt,.q .opt{display:block!important;border:1px solid #999!important;background:#fff!important}
+  /* 區塊不被切斷 */
+  .card,.stat,.note,.q,.step,details{break-inside:avoid}
+  details summary{list-style:none;font-weight:700}
+  canvas,svg,table,.plate,.well,.eq,.formula{break-inside:avoid;max-width:100%}
+  tr{break-inside:avoid}
+  .sim-tag,.pill,.badge,.lv{border:1px solid #999}
+  /* 連結：本文不印網址，參考文獻才印 */
+  a{color:#000;text-decoration:none}
+  .refs a[href^="http"]::after,ol.refs a[href^="http"]::after
+    {content:" (" attr(href) ")";font-size:.72em;color:#444;word-break:break-all}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="eyebrow">碩一實驗課・互動講義</div>
+    <h1>以 A23187 + PMA 誘發肥大細胞脫顆粒<span class="verpill">v.1</span></h1>
+    <p class="lede">細胞株：RBL-2H3（大鼠嗜鹼性白血病細胞，常用的肥大細胞模型）。刺激方式：鈣離子載體 A23187 搭配 PKC 活化劑 PMA，<b>不經由 IgE–FcεRI</b>。測量指標仍為 β-hexosaminidase 活性，受質為 p-NAG。本版本重點在於：這套刺激繞過受體的意義、與 IgE 版本的操作差異，以及它在判讀藥物作用點時的用途。</p>
+  </div>
+</header>
+<nav class="tabs" aria-label="章節">
+  <div class="wrap">
+    <a href="#principle">1 原理</a>
+    <a href="#bench">2 虛擬實驗台</a>
+    <a href="#analysis">3 數據分析</a>
+    <a href="#tips">4 注意事項</a>
+    <a href="#glossary">5 專有名詞</a>
+    <a href="#refs">6 參考文獻</a>
+  </div>
+</nav>
+
+<main class="wrap">
+<!-- ================= 1. PRINCIPLE ================= -->
+<section id="principle">
+  <div class="stack">
+    <div class="reading stack">
+      <h2>為什麼可以不用 IgE？</h2>
+      <p>IgE 版本的活化路徑是：抗原交聯 IgE–FcεRI → Lyn/Fyn、Syk → PLCγ 水解 PIP₂ → 產生 DAG 與 IP₃ → IP₃ 動員鈣離子、Ca²⁺ 與 DAG 共同活化 PKC → 顆粒胞吐。<span class="cite">[1]</span></p>
+      <p>A23187 與 PMA 分別補上這條路徑<b>最下游的兩個分支</b>，因此可以略過受體與 PLCγ：A23187 是來自 <i>Streptomyces chartreusensis</i> 的聚醚類離子載體抗生素，能結合並攜帶 Ca²⁺ 及其他二價陽離子穿過細胞膜，使胞內 Ca²⁺ 上升<span class="cite">[12]</span>；PMA 屬佛波醇酯，是 DAG 的類似物，可結合 PKC 的 C1 domain 而直接活化 PKC。<span class="cite">[13]</span></p>
+      <div class="warn">
+        <b>最重要的觀念：這不是 IgE 的「等效替代」。</b> PMA 併用 A23187 雖可引發 RBL-2H3 分泌，但其刺激訊號與抗原或 IgE 寡聚體所產生的並不相同——這點在 1989 年就被寫進論文標題。<span class="cite">[2]</span> 因此本方法的定位是<b>繞過受體的陽性對照與下游探針</b>，而不是模擬過敏反應本身。
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="eyebrow">互動 1・兩條路徑的交會點</div>
+        <svg id="pathsvg" viewBox="0 0 380 330" role="img" aria-label="FcεRI 路徑與 A23187/PMA 繞道路徑示意圖">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/>
+            </marker>
+          </defs>
+          <!-- receptor chain -->
+          <g id="gRecep">
+            <rect x="18" y="10" width="200" height="30" rx="6" fill="color-mix(in srgb,var(--teal) 14%,transparent)" stroke="var(--teal)"/>
+            <text x="118" y="30" text-anchor="middle" font-size="12">抗原交聯 IgE–FcεRI</text>
+            <line x1="118" y1="40" x2="118" y2="54" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#ah)"/>
+            <rect x="18" y="56" width="200" height="30" rx="6" fill="none" stroke="var(--line)"/>
+            <text x="118" y="76" text-anchor="middle" font-size="12">Lyn / Fyn → Syk</text>
+            <line x1="118" y1="86" x2="118" y2="100" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#ah)"/>
+            <rect x="18" y="102" width="200" height="30" rx="6" fill="none" stroke="var(--line)"/>
+            <text x="118" y="122" text-anchor="middle" font-size="12">PLCγ 水解 PIP₂</text>
+            <line x1="118" y1="132" x2="118" y2="146" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#ah)"/>
+            <rect x="18" y="148" width="200" height="30" rx="6" fill="none" stroke="var(--line)"/>
+            <text x="118" y="168" text-anchor="middle" font-size="12">IP₃ ＋ DAG</text>
+            <line x1="70" y1="178" x2="70" y2="196" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#ah)"/>
+            <line x1="166" y1="178" x2="166" y2="196" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#ah)"/>
+          </g>
+          <!-- bypass -->
+          <g id="gBypass">
+            <rect x="248" y="196" width="118" height="28" rx="6" fill="color-mix(in srgb,var(--yellow) 26%,transparent)" stroke="var(--yellow-deep)"/>
+            <text x="307" y="215" text-anchor="middle" font-size="12">A23187</text>
+            <line x1="248" y1="210" x2="224" y2="210" stroke="var(--yellow-deep)" stroke-width="2" marker-end="url(#ah)"/>
+            <rect x="248" y="248" width="118" height="28" rx="6" fill="color-mix(in srgb,var(--violet) 26%,transparent)" stroke="var(--violet)"/>
+            <text x="307" y="267" text-anchor="middle" font-size="12">PMA</text>
+            <line x1="248" y1="262" x2="224" y2="262" stroke="var(--violet)" stroke-width="2" marker-end="url(#ah)"/>
+          </g>
+          <!-- convergence nodes (always on) -->
+          <g id="gNodes">
+            <rect x="18" y="198" width="100" height="30" rx="6" fill="color-mix(in srgb,var(--yellow) 18%,transparent)" stroke="var(--yellow-deep)"/>
+            <text x="68" y="218" text-anchor="middle" font-size="12">Ca²⁺ ↑</text>
+            <rect x="124" y="198" width="100" height="30" rx="6" fill="color-mix(in srgb,var(--violet) 18%,transparent)" stroke="var(--violet)"/>
+            <text x="174" y="218" text-anchor="middle" font-size="12">PKC 活化</text>
+            <line x1="68" y1="228" x2="100" y2="250" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#ah)"/>
+            <line x1="174" y1="228" x2="142" y2="250" stroke="var(--ink-soft)" stroke-width="2" marker-end="url(#ah)"/>
+            <rect x="18" y="252" width="206" height="32" rx="6" fill="color-mix(in srgb,var(--good) 14%,transparent)" stroke="var(--good)"/>
+            <text x="121" y="272" text-anchor="middle" font-size="12">顆粒胞吐 → β-hex 釋出</text>
+          </g>
+          <text id="pathmsg" x="190" y="312" text-anchor="middle" font-size="12.5"></text>
+        </svg>
+        <div class="row">
+          <button id="btnIge" aria-pressed="false">IgE／抗原路徑</button>
+          <button id="btnByp" aria-pressed="false">A23187 + PMA</button>
+          <button id="btnBoth" aria-pressed="true">兩者並列</button>
+        </div>
+        <p class="note">兩條路徑在 Ca²⁺ 與 PKC 這兩個節點會合。示意圖僅表達概念，並非真實比例或完整訊號網路。</p>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">互動 2・呈色反應與 pH</div>
+        <div class="eq">p-NAG ──(β-hexosaminidase, pH 4.5, 37 °C)──▶ p-nitrophenol + N-acetyl-glucosamine</div>
+        <p>呈色系統與 IgE 版本完全相同：酵素在酸性檸檬酸緩衝液（pH 4.5）中作用。<span class="cite">[11]</span> 產物 p-nitrophenol 在酸性下幾乎無色，加入鹼性終止液後轉成黃色的 p-nitrophenolate，可在 405 nm 讀吸光值。<span class="cite">[11]</span></p>
+        <label for="phSlider">拖曳調整 pH：<b id="phVal" class="mono">4.5</b></label>
+        <input type="range" id="phSlider" min="3" max="11" step="0.1" value="4.5">
+        <div class="row" style="align-items:center">
+          <div id="phWell" class="well" style="width:72px;flex:none"></div>
+          <div class="stack" style="gap:2px">
+            <div>呈黃色的 phenolate 比例：<b id="phFrac" class="mono">—</b></div>
+            <div class="note">依 Henderson–Hasselbalch 計算，p-nitrophenol 的 pKa 約 7.15。</div>
+          </div>
+        </div>
+        <p class="note">所以終止液同時做兩件事：把 pH 拉高使酸性酵素停止作用，並讓產物完全離子化、黃色最大化。</p>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card reading">
+        <div class="eyebrow">單獨使用與併用並不對稱</div>
+        <p>在 RBL-2H3 中，PMA 單獨使用幾乎不引發分泌反應，而 A23187 單獨就能誘發明顯釋放；A23187 誘發的分泌可被 PMA 增強。<span class="cite">[3]</span> 文獻中曾報告的一組 β-hexosaminidase 釋放率為：無刺激 0.5 %、PMA 2.4 %、A23187 43.8 %、PMA + A23187 36.7 %。<span class="cite">[9]</span></p>
+        <p class="note">可見併用的加成幅度會隨濃度、順序與時間而異，不是必然更高。實驗設計時建議把「A23187 單獨」也放進對照組，而不是只做併用組。</p>
+      </div>
+      <div class="card reading">
+        <div class="eyebrow">核心計算（與 IgE 版本相同）</div>
+        <p>同一孔細胞分成兩部分：<b>上清液</b>（已釋放的酵素，S）與<b>裂解液</b>（仍留在細胞內的酵素，L，以 Triton X-100 破膜取得）。兩者都扣掉空白（blank），在上清與裂解液總體積相同、各取等量反應的前提下：</p>
+        <div class="eq">% release = (S − blank) ÷ [(S − blank) + (L − blank)] × 100</div>
+        <p class="note">文獻中的寫法即為 A405（上清）÷[A405（上清）+ A405（裂解液）]。<span class="cite">[11]</span> 也有研究以「平行孔加 0.5 % Triton X-100 所釋出的總活性」作為分母。<span class="cite">[4]</span> 若上清與裂解液的總體積或取樣量不同，必須先換算成每孔總活性再相加（見第 3 節）。</p>
+      </div>
+    </div>
+
+    <div class="card reading">
+      <div class="eyebrow">這套刺激真正的用途：定位作用點</div>
+      <p>把 IgE／抗原刺激與 A23187 + PMA 刺激並列，可以推論測試物質或基因改變作用在鈣訊號的上游還是下游：</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>抗原誘發釋放</th><th>A23187 + PMA 誘發釋放</th><th>推論</th></tr></thead>
+        <tbody>
+          <tr><td>被抑制</td><td>不受影響</td><td>作用點在 Ca²⁺ 上升之前（受體、Syk、PLCγ 等）</td></tr>
+          <tr><td>被抑制</td><td>也被抑制</td><td>作用點在鈣訊號之後，或在胞吐機制本身（亦須排除細胞毒性與酵素直接抑制）</td></tr>
+        </tbody>
+      </table></div>
+      <p>文獻中的實例：FcεRI 訊號缺陷的 B6A4C1 變異株無法進行 IgE 誘發的脫顆粒，但繞過受體性鈣流入的試劑仍能引發強烈脫顆粒反應<span class="cite">[5]</span>；表現 dominant-negative Cdc42 與 Rac 的細胞分泌受抑制，而 A23187 加 PMA 可將其回復，因而推論 Cdc42 與 Rac 作用於鈣流入路徑的上游<span class="cite">[4]</span>；PI3K-C2α 基因沉默會抑制 FcεRI 誘發的釋放，但以 30 nM PMA 預處理 10 分鐘後再加 1 μM A23187 刺激 10 分鐘所引發的釋放則不受影響。<span class="cite">[6]</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2. BENCH ================= -->
+<section id="bench">
+  <div class="stack">
+    <div class="reading stack">
+      <h2>虛擬實驗台</h2>
+      <p>每一步先回答一個操作決策，答對才會執行。濃度與時間取自文獻中常見條件（見各步驟標註），實際操作請以你們實驗室的 SOP 為準。</p>
+      <p class="note">與 IgE 版本的流程差異已反映在步驟中：沒有致敏日，自發釋放組改為「僅加 vehicle」，並多了溶劑濃度一致與細胞毒性的考量。</p>
+    </div>
+    <div class="bench">
+      <div class="stack">
+        <div class="card">
+          <div class="platehead"><span>細胞培養盤（96 孔盤局部）</span><span class="pill" id="clock">Day 1</span></div>
+          <div id="cellPlate" class="plate"></div>
+          <div class="legend">
+            <span style="--c:var(--cell)">有細胞</span>
+            <span style="--c:var(--violet)">已加刺激物（外框）</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="platehead"><span>反應盤：上清 S ／ 裂解液 L ／ blank</span><span class="pill" id="rxStatus">尚未開始</span></div>
+          <div id="rxPlate" class="plate"></div>
+          <p class="note">列 S 與 L 對應上方同一行的細胞；最右一行為只加緩衝液與受質的 blank。</p>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <div class="eyebrow">流程</div>
+          <ol class="steps" id="stepList"></ol>
+        </div>
+        <div class="card" id="console" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. ANALYSIS ================= -->
+<section id="analysis">
+  <div class="stack">
+    <div class="reading stack">
+      <h2>數據分析</h2>
+      <p><span class="sim-tag">模擬數據</span> 下表 OD405 由程式隨機產生，用來練習計算，<b>不代表</b>任何真實實驗結果或預期數值。每次按「重新產生」數字都會不同。</p>
+      <p>本模擬設定：刺激體積與裂解液體積相同，S 與 L 各取相同體積加入 p-NAG，因此可直接套用 S ÷ (S + L)。</p>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="eyebrow">OD405 讀值（三重複）</div>
+        <button id="regen">重新產生一組模擬數據</button>
+      </div>
+      <div class="tablewrap"><table id="odTable"></table></div>
+      <p class="note">Blank OD405：<b class="mono" id="blankVal"></b>（緩衝液 + p-NAG + 終止液，無樣品）</p>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="eyebrow">換你算：各組平均 % release</div>
+        <p class="note">先求三重複的平均 S 與 L，各自扣 blank，再代公式。答案容許 ±1.0 個百分點。</p>
+        <div id="answerBox" class="stack" style="gap:10px"></div>
+        <div class="row"><button class="primary" id="checkAns">檢查答案</button><button id="showAns">顯示解答</button></div>
+        <div id="ansFeedback"></div>
+      </div>
+      <div class="card">
+        <div class="eyebrow">結果圖</div>
+        <svg id="bar" viewBox="0 0 360 240" role="img" aria-label="% release 長條圖"></svg>
+        <p class="note">檢查答案後顯示。抑制率可再計算為：(1 − 處理組淨釋放 ÷ 刺激組淨釋放) × 100，其中淨釋放 = 該組 % release − 自發釋放 % release。</p>
+      </div>
+    </div>
+    <div class="card reading">
+      <div class="eyebrow">進階：體積不相等時怎麼辦？</div>
+      <p>% release 的本意是「釋放到胞外的酵素 ÷ 每孔酵素總量」。若上清總體積為 V<sub>S</sub>、取 v<sub>S</sub> 反應；裂解液總體積為 V<sub>L</sub>、取 v<sub>L</sub> 反應，則：</p>
+      <div class="eq">S_total = (S − blank) × V_S / v_S<br>L_total = (L − blank) × V_L / v_L<br>% release = S_total ÷ (S_total + L_total) × 100</div>
+      <p class="note">使用別人的公式前，先確認它對應的取樣方式；以平行孔的 Triton X-100 總裂解量作為分母時，公式形式又會不同。<span class="cite">[4]</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 4. TIPS ================= -->
+<section id="tips">
+  <div class="stack reading">
+    <h2>注意事項與思考題</h2>
+    <div class="qa">
+      <details open><summary>為什麼各孔的 DMSO 濃度一定要一致？</summary>
+        <p>A23187 與 PMA 通常都以 DMSO 配製母液，所以自發釋放組、刺激組與測試物質組的 DMSO 終濃度必須相同，否則比較的就不只是刺激的差別。文獻中的操作建議也特別提到：使用 DMSO 母液時需控制各樣品間的 DMSO 濃度，因為 DMSO 在與 hexosaminidase 呈色產物相同的波段有吸收，並建議盡可能改用 PBS 配製母液。<span class="cite">[10]</span></p></details>
+      <details><summary>這個版本的「自發釋放組」是什麼？</summary>
+        <p>不是「有 IgE、不加抗原」——因為本版本沒有致敏步驟。自發釋放組是<b>僅加入等量 vehicle（通常為 DMSO）</b>的孔，用來反映操作過程（換液、溫度變化）本身造成的漏出。</p></details>
+      <details><summary>為什麼緩衝液必須含 Ca²⁺，而且比 IgE 版本更關鍵？</summary>
+        <p>A23187 的作用就是把<b>胞外</b>的鈣帶進細胞，<span class="cite">[12]</span> 無鈣緩衝液等於完全沒有刺激。文獻中使用的 incubation buffer 例如 PIPES buffer（140 mM NaCl、5 mM KCl、0.6 mM MgCl₂、10 mM PIPES，pH 7.4）再補 5.5 mM glucose、0.1 % BSA 與 1.0 mM CaCl₂。<span class="cite">[7]</span></p></details>
+      <details><summary>為什麼細胞毒性測試在這個版本是必要的？</summary>
+        <p>A23187 除了帶入鈣離子，還會解偶聯氧化磷酸化並抑制粒線體 ATPase。<span class="cite">[12]</span> 高濃度或長時間處理可能造成鈣依賴性細胞死亡，使 % release 的下降其實來自細胞受損而非脫顆粒被抑制。因此 MTT／CCK-8 存活率測試應在<b>與脫顆粒實驗相同的刺激條件下</b>進行，而不只是測試物質單獨處理。</p></details>
+      <details><summary>加入順序重要嗎？</summary>
+        <p>文獻兩種做法都有。先以 PMA 短時間預處理再加 A23187：20 nM PMA 作用 5 分鐘後加 1 μM A23187 作用 1 小時<span class="cite">[4]</span>、30 nM PMA 10 分鐘後加 1 μM A23187 10 分鐘<span class="cite">[6]</span>；也有兩者同時加入 30 分鐘的做法（PMA 50 nM + A23187 1 μM）。<span class="cite">[1]</span> 同一次實驗內務必一致，並在方法中寫清楚。</p></details>
+      <details><summary>刺激時間要多久？</summary>
+        <p>依讀出指標而定。測 β-hexosaminidase 多在 10–60 分鐘<span class="cite">[4][6]</span>；測細胞激素才拉長到數小時，例如 A23187 1 μM + PMA 50 ng/mL 作用 4 小時測 TNF-α、或 HMC-1 以 PMA 40 nM + A23187 1 μM 作用 2.5 小時。<span class="cite">[1]</span> 把測細胞激素的時間直接套到脫顆粒實驗上，會大幅增加細胞死亡的干擾。</p></details>
+      <details><summary>不同文獻的 A23187 濃度差異很大，正常嗎？</summary>
+        <p>正常，而且該綜論自己就把這件事列為研究間差異的來源之一：A23187 的使用劑量與時間從 0.15 μg/mL 作用 30 分鐘到 1 μM 作用 2.5 小時都有。<span class="cite">[1]</span> 同一研究內也可能因指標而不同，例如測 β-hexosaminidase 用 1 μM、測組織胺與 ROS 改用 2 μM。<span class="cite">[7]</span> 建議自行做濃度與時間的預試，選在反應明顯但存活率仍可接受的條件。</p></details>
+      <details><summary>測試藥物時，除了細胞毒性還要排除什麼？</summary>
+        <p>要確認藥物本身不會直接抑制 β-hexosaminidase 的酵素活性，也不會在 405 nm 產生吸光干擾。做法是把藥物直接加進「酵素呈色反應」而不經過細胞，看是否影響讀值。這個對照在任何版本都需要，與刺激方式無關。</p></details>
+      <details><summary>長時間的 PMA 處理會發生什麼事？</summary>
+        <p>需留意佛波醇酯長時間處理會造成 PKC 耗竭（PKC depletion），例如以 1 μM PMA 處理過夜被用來<b>去除</b>細胞內 PKC，進而抑制抗原誘發的脫顆粒。短時間的活化與長時間的耗竭方向相反，設計時間點時必須分清楚。</p></details>
+      <details><summary>那還需要做 IgE 版本嗎？</summary>
+        <p>需要。A23187 + PMA 的刺激訊號與抗原並不相同，<span class="cite">[2]</span> 它無法回答「這個物質能不能抑制過敏性活化」。兩者的關係是互補：IgE 版本回答有效性，A23187 + PMA 版本回答作用點落在鈣訊號的哪一側。</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 5. GLOSSARY ================= -->
+<section id="glossary">
+  <div class="stack">
+    <div class="reading stack">
+      <h2>專有名詞</h2>
+      <p class="note">依縮寫字母順序排列。</p>
+    </div>
+    <div class="card">
+      <div class="tablewrap"><table class="gloss">
+        <thead><tr><th>縮寫</th><th>英文全名</th><th>台灣繁體中文譯名</th></tr></thead>
+        <tbody>
+          <tr><td>A23187</td><td>Calcimycin (Calcium Ionophore A23187)</td><td>鈣離子載體 A23187／卡西黴素</td></tr>
+          <tr><td>BSA</td><td>Bovine Serum Albumin</td><td>牛血清白蛋白</td></tr>
+          <tr><td>CCK-8</td><td>Cell Counting Kit-8</td><td>細胞計數試劑組 8</td></tr>
+          <tr><td>DAG</td><td>Diacylglycerol</td><td>二醯基甘油</td></tr>
+          <tr><td>DMSO</td><td>Dimethyl Sulfoxide</td><td>二甲基亞碸</td></tr>
+          <tr><td>DNP-BSA</td><td>Dinitrophenyl-Bovine Serum Albumin</td><td>二硝基苯基化牛血清白蛋白</td></tr>
+          <tr><td>FBS</td><td>Fetal Bovine Serum</td><td>胎牛血清</td></tr>
+          <tr><td>FcεRI</td><td>High-affinity IgE Receptor (Fc epsilon Receptor I)</td><td>高親和力 IgE 受體</td></tr>
+          <tr><td>HBSS</td><td>Hank's Balanced Salt Solution</td><td>漢克氏平衡鹽溶液</td></tr>
+          <tr><td>IgE</td><td>Immunoglobulin E</td><td>免疫球蛋白 E</td></tr>
+          <tr><td>IP₃</td><td>Inositol 1,4,5-trisphosphate</td><td>肌醇三磷酸</td></tr>
+          <tr><td>MTT</td><td>3-(4,5-Dimethylthiazol-2-yl)-2,5-diphenyltetrazolium bromide</td><td>四甲基偶氮唑鹽</td></tr>
+          <tr><td>OXPHOS</td><td>Oxidative Phosphorylation</td><td>氧化磷酸化</td></tr>
+          <tr><td>PBS</td><td>Phosphate-Buffered Saline</td><td>磷酸鹽緩衝生理鹽水</td></tr>
+          <tr><td>PIP₂</td><td>Phosphatidylinositol 4,5-bisphosphate</td><td>磷脂醯肌醇 4,5-雙磷酸</td></tr>
+          <tr><td>PIPES</td><td>Piperazine-N,N′-bis(2-ethanesulfonic acid)</td><td>哌𠯤雙乙磺酸緩衝劑</td></tr>
+          <tr><td>PKC</td><td>Protein Kinase C</td><td>蛋白質激酶 C</td></tr>
+          <tr><td>PLCγ</td><td>Phospholipase C gamma</td><td>磷脂酶 Cγ</td></tr>
+          <tr><td>PMA</td><td>Phorbol 12-myristate 13-acetate</td><td>佛波醇 12-肉豆蔻酸 13-乙酸酯</td></tr>
+          <tr><td>p-NAG</td><td>p-Nitrophenyl N-acetyl-β-D-glucosaminide</td><td>對硝基苯基 N-乙醯基-β-D-胺基葡萄糖苷</td></tr>
+          <tr><td>RBL-2H3</td><td>Rat Basophilic Leukemia 2H3 cells</td><td>大鼠嗜鹼性白血病細胞株 2H3</td></tr>
+          <tr><td>ROS</td><td>Reactive Oxygen Species</td><td>活性氧物種</td></tr>
+          <tr><td>SOP</td><td>Standard Operating Procedure</td><td>標準作業程序</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 6. REFS ================= -->
+<section id="refs">
+  <div class="stack reading">
+    <h2>參考文獻</h2>
+    <p class="note">本講義的實驗條件與原理整理自下列來源；頁面中的 OD 數值為程式模擬，非出自任何文獻。</p>
+    <ol class="refs">
+      <li>Rana TS, Bansode RR, Williams LL. Anti-Allergic and Anti-Inflammatory Signaling Mechanisms of Natural Compounds/Extracts in In Vitro System of RBL-2H3 Cell: A Systematic Review. <i>Cells</i>. 2024;13(16):1389. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11353167/">PMC11353167</a>（系統性回顧；表格彙整各研究的刺激條件，本身不含實驗步驟）</li>
+      <li>Cunha-Melo JR, Gonzaga HM, Ali H, Huang FL, Huang KP, Beaven MA. Studies of protein kinase C in the rat basophilic leukemia (RBL-2H3) cell reveal that antigen-induced signals are not mimicked by the actions of phorbol myristate acetate and Ca²⁺ ionophore. <i>J Immunol</i>. 1989;143:2617–2625.</li>
+      <li>Ludowyke RI, Scurr LL, McNally CM. Calcium ionophore-induced secretion from mast cells correlates with myosin light chain phosphorylation by protein kinase C. <i>J Immunol</i>. 1996;157(11):5130–5138. PMID: 8943424</li>
+      <li>Hong-Geller E, Cerione RA. Cdc42 and Rac stimulate exocytosis of secretory granules by activating the IP₃/calcium pathway in RBL-2H3 mast cells. <i>J Cell Biol</i>. 2000;148(3):481–494. <a href="https://doi.org/10.1083/jcb.148.3.481">doi:10.1083/jcb.148.3.481</a></li>
+      <li>Field KA, Apgar JR, Hong-Geller E, Siraganian RP, Baird B, Holowka D. Mutant RBL mast cells defective in FcεRI signaling and lipid raft biosynthesis are reconstituted by activated Rho-family GTPases. <i>Mol Biol Cell</i>. 2000;11(10):3661–3673. <a href="https://doi.org/10.1091/mbc.11.10.3661">doi:10.1091/mbc.11.10.3661</a></li>
+      <li>Nigorikawa K, Hazeki K, Guo Y, Hazeki O. Involvement of class II phosphoinositide 3-kinase α-isoform in antigen-induced degranulation in RBL-2H3 cells. <i>PLoS One</i>. 2014;9(10):e111698. <a href="https://doi.org/10.1371/journal.pone.0111698">doi:10.1371/journal.pone.0111698</a></li>
+      <li>Kong ZL, Sudirman S, Lin HJ, Chen WN. In vitro anti-inflammatory effects of curcumin on mast cell-mediated allergic responses via inhibiting FcεRI protein expression and protein kinase C delta translocation. <i>Cytotechnology</i>. 2020;72(1):81–95. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7002632/">PMC7002632</a></li>
+      <li>Yoo G, Lee K, Lee D. Inhibitory effects of 2-oxo-2H-chromen-4-yl 4-methylbenzenesulfonate on allergic inflammatory responses in rat basophilic leukemia cells. <i>Int Immunopharmacol</i>. 2017;48:196–203. <a href="https://doi.org/10.1016/j.intimp.2017.05.003">doi:10.1016/j.intimp.2017.05.003</a></li>
+      <li>Sewell WA, et al. Induction of interleukin-4 and interleukin-5 expression in mast cells is inhibited by glucocorticoids. <i>Clin Diagn Lab Immunol</i>. 1998;5(1):18–23. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC121384/">PMC121384</a></li>
+      <li>Donnelly J. Treating mast cells and basophils with degranulation inducers. <i>protocols.io</i>. 2025. <a href="https://dx.doi.org/10.17504/protocols.io.n2bvjnezbgk5/v1">doi:10.17504/protocols.io.n2bvjnezbgk5/v1</a></li>
+      <li>US Patent 8,546,403 及同系列 9,120,751／11,905,248. Compounds that modulate intracellular calcium（RBL-2H3；10 μL 樣品加 40 μL 1 mM p-NAG 於 0.05 M sodium citrate pH 4.5、37 °C 60 分鐘；0.05 M Na₂CO₃／NaHCO₃ pH 10.5 終止；405 nm；0.05 % Triton X-100 於含 1.8 mM CaCl₂ 的 HBSS 裂解；% release 公式）。<a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/8546403">USPTO 8,546,403</a></li>
+      <li>MeSH Descriptor: Calcimycin (D000001). U.S. National Library of Medicine.（A23187 之離子載體特性、運送二價陽離子、解偶聯氧化磷酸化並抑制粒線體 ATPase）<a href="https://meshb.nlm.nih.gov/record/ui?ui=D000001">MeSH</a></li>
+      <li>Structural determinants of phorbol ester binding activity of the C1a and C1b domains of protein kinase C theta. <i>Biochim Biophys Acta Biomembr</i>. 2018;1860(5):1046–1056. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6957261/">PMC6957261</a>（PKC 為佛波醇酯的主要標的；C1 domain 結合 DAG 與佛波醇酯）</li>
+    </ol>
+  </div>
+</section>
+</main>
+
+<script>
+(function(){
+/* ---------- tabs via hash ---------- */
+const ids=["principle","bench","analysis","tips","glossary","refs"];
+function route(){
+  let h=(location.hash||"#principle").slice(1); if(!ids.includes(h)) h="principle";
+  ids.forEach(i=>document.getElementById(i).classList.toggle("active",i===h));
+  document.querySelectorAll("nav.tabs a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+h?"page":"false"));
+}
+window.addEventListener("hashchange",route); route();
+
+/* ---------- interactive 1: pathway ---------- */
+const gRecep=document.getElementById("gRecep"),gByp=document.getElementById("gBypass"),pmsg=document.getElementById("pathmsg");
+const bIge=document.getElementById("btnIge"),bByp=document.getElementById("btnByp"),bBoth=document.getElementById("btnBoth");
+function setMode(m){
+  gRecep.classList.toggle("dim",m==="byp");
+  gByp.classList.toggle("dim",m==="ige");
+  bIge.setAttribute("aria-pressed",m==="ige");
+  bByp.setAttribute("aria-pressed",m==="byp");
+  bBoth.setAttribute("aria-pressed",m==="both");
+  pmsg.textContent = m==="ige" ? "受體路徑：訊號由上而下，Ca²⁺ 與 PKC 都由 PLCγ 的產物產生"
+    : m==="byp" ? "繞道路徑：A23187 直接供給 Ca²⁺，PMA 直接活化 PKC"
+    : "兩條路徑在 Ca²⁺ 與 PKC 會合——但上游訊號並不相同";
+}
+bIge.onclick=()=>setMode("ige");bByp.onclick=()=>setMode("byp");bBoth.onclick=()=>setMode("both");
+setMode("both");
+
+/* ---------- interactive 2: pH ---------- */
+const sl=document.getElementById("phSlider");
+function phUpd(){const ph=+sl.value,f=1/(1+Math.pow(10,7.15-ph));
+  document.getElementById("phVal").textContent=ph.toFixed(1);
+  document.getElementById("phFrac").textContent=(f*100).toFixed(1)+" %";
+  document.getElementById("phWell").style.background=`color-mix(in srgb,var(--yellow) ${Math.round(f*100)}%,var(--well-empty))`;}
+sl.oninput=phUpd;phUpd();
+
+/* ---------- simulated data (shared by bench + analysis) ---------- */
+const groups=[
+  {key:"spon",name:"自發釋放（僅加 vehicle）"},
+  {key:"stim",name:"A23187 + PMA 刺激"},
+  {key:"inh", name:"A23187 + PMA + 測試物質"}
+];
+let sim;
+function rnd(a,b){return a+Math.random()*(b-a)}
+function makeSim(){
+  const blank=+rnd(0.04,0.07).toFixed(3);
+  const frac={spon:rnd(0.02,0.06),stim:rnd(0.35,0.55),inh:rnd(0.13,0.25)};
+  const data={};
+  groups.forEach(g=>{data[g.key]=[0,1,2].map(()=>{const T=rnd(1.0,1.4),f=Math.max(0.01,frac[g.key]+rnd(-0.02,0.02));
+    return {S:+(blank+T*f+rnd(-0.005,0.005)).toFixed(3),L:+(blank+T*(1-f)+rnd(-0.01,0.01)).toFixed(3)}})});
+  sim={blank,data};
+}
+function truth(k){const b=sim.blank,a=sim.data[k];const S=a.reduce((s,x)=>s+x.S,0)/3-b,L=a.reduce((s,x)=>s+x.L,0)/3-b;return S/(S+L)*100}
+makeSim();
+
+/* ---------- bench ---------- */
+const cellPlate=document.getElementById("cellPlate"),rxPlate=document.getElementById("rxPlate");
+function buildPlates(){
+  cellPlate.style.gridTemplateColumns=`3.2em repeat(9,1fr)`;
+  rxPlate.style.gridTemplateColumns=`3.2em repeat(10,1fr)`;
+  cellPlate.innerHTML="";rxPlate.innerHTML="";
+  cellPlate.insertAdjacentHTML("beforeend",`<div class="lab"></div>`+groups.map(g=>`<div class="lab" style="grid-column:span 3">${g.name.replace(/（.*）/,"")}</div>`).join(""));
+  cellPlate.insertAdjacentHTML("beforeend",`<div class="lab">細胞</div>`+Array.from({length:9},(_,i)=>`<div class="well" data-c="${i}"></div>`).join(""));
+  rxPlate.insertAdjacentHTML("beforeend",`<div class="lab">S</div>`+Array.from({length:9},(_,i)=>`<div class="well" data-s="${i}"></div>`).join("")+`<div class="well" data-b="0"></div>`);
+  rxPlate.insertAdjacentHTML("beforeend",`<div class="lab">L</div>`+Array.from({length:9},(_,i)=>`<div class="well" data-l="${i}"></div>`).join("")+`<div class="well" data-b="1"></div>`);
+}
+buildPlates();
+const W=(sel)=>[...document.querySelectorAll(sel)];
+function odAt(kind,i){const g=groups[Math.floor(i/3)].key,r=i%3;return sim.data[g][r][kind]}
+function colorRx(mode){ // "faint" (acidic, before stop) | "stop"
+  const max=1.4;
+  W("[data-s]").forEach(w=>{const v=odAt("S",+w.dataset.s);w.style.background=tint(v/max,mode)});
+  W("[data-l]").forEach(w=>{const v=odAt("L",+w.dataset.l);w.style.background=tint(v/max,mode)});
+  W("[data-b]").forEach(w=>{w.style.background=tint(sim.blank/max,mode)});
+}
+function tint(x,mode){const p=Math.min(100,Math.round((mode==="stop"?x*100:x*12)));return `color-mix(in srgb,var(--yellow) ${p}%,var(--well-empty))`}
+
+const steps=[
+ {t:"種細胞（Day 1）",
+  q:"RBL-2H3 是貼附型細胞。第一天應該怎麼做？",
+  opts:[["接種於培養盤後培養過夜，讓細胞貼附","ok","貼附型細胞需要時間貼盤並恢復狀態。接種密度依盤型而異，例如 24 孔盤 5×10⁵ cells/well[10]、或 24 孔盤 2×10⁵ cells/mL[7]；96 孔盤請依實驗室 SOP 換算。"],
+        ["接種後立即刺激，不需等細胞貼附","no","未貼附的細胞狀態不穩定，且換液、收上清時極易被吸走，造成上清活性被高估。"],
+        ["先以胰蛋白酶處理成懸浮細胞再離心收集上清","no","這是懸浮細胞的處理方式。RBL-2H3 貼附生長，直接在孔中操作即可。"]],
+  act:()=>{W("[data-c]").forEach(w=>w.classList.add("cells"));setClock("Day 1")}},
+ {t:"確認是否需要致敏",
+  q:"第二天開始實驗。本版本需要先用 anti-DNP IgE 致敏過夜嗎？",
+  opts:[["不需要。A23187 與 PMA 作用於受體下游，可直接供給 Ca²⁺ 並活化 PKC","ok","A23187 是二價陽離子離子載體，把胞外鈣帶進細胞[12]；PMA 是 DAG 類似物，直接結合 PKC 的 C1 domain 使其活化[13]。兩者都不經過 FcεRI，所以整個實驗少了一個致敏日。"],
+        ["需要，否則 A23187 無法進入細胞","no","A23187 是脂溶性離子載體，直接穿過細胞膜運送二價陽離子，與 IgE 或受體無關。[12]"],
+        ["需要，因為 PMA 要靠 FcεRI 才能活化 PKC","no","PMA 直接作用於 PKC 的 C1 domain，不需要受體訊號。[13]"]],
+  act:()=>{setClock("Day 2")}},
+ {t:"清洗並換成刺激緩衝液",
+  q:"移除培養基後，刺激時應該使用哪種緩衝液？",
+  opts:[["含 Ca²⁺ 的緩衝液，例如 PIPES buffer 再補 glucose、BSA 與 1.0 mM CaCl₂","ok","文獻中的 incubation buffer：PIPES buffer（140 mM NaCl、5 mM KCl、0.6 mM MgCl₂、10 mM PIPES，pH 7.4）補 5.5 mM glucose、0.1% BSA、1.0 mM CaCl₂。[7]"],
+        ["不含 Ca²⁺ 的 PBS","no","A23187 帶入的是胞外鈣，無鈣緩衝液等於完全沒有刺激——這個版本對胞外 Ca²⁺ 的依賴比 IgE 版本更直接。[12]"],
+        ["含 10% FBS 的完整培養基","no","血清成分複雜，可能帶來背景值或干擾；刺激通常改用成分明確的緩衝液。"]],
+  act:()=>{}},
+ {t:"加入測試物質（前處理）",
+  q:"若要測試某物質是否抑制脫顆粒，加入時最需要注意什麼？",
+  opts:[["在加刺激物之前先預處理，並讓所有孔的 vehicle（DMSO）終濃度一致","ok","A23187 與 PMA 多以 DMSO 配製母液，各組 DMSO 濃度必須相同；文獻也提醒 DMSO 在呈色產物相同波段有吸收，建議盡可能改用 PBS 配製母液。[10] 自發釋放組與刺激組加入等量 vehicle。"],
+        ["直接加入反應盤，與 p-NAG 一起","no","那樣測到的是它是否干擾酵素反應或吸光值，不是是否抑制細胞脫顆粒。（不過這個對照本身也該做，見注意事項。）"],
+        ["不必在意溶劑，只要刺激組與測試組的藥物濃度正確","no","若各組 DMSO 濃度不同，差異就不只來自測試物質，整組數據無法解釋。[10]"]],
+  act:()=>{}},
+ {t:"加入 PMA（預處理）",
+  q:"PMA 在本實驗中的角色是什麼？",
+  opts:[["PKC 活化劑，作為 DAG 的類似物直接活化 PKC；常用約 20–50 nM 短時間預處理","ok","文獻做法例如 20 nM PMA 作用 5 分鐘[4]、30 nM PMA 作用 10 分鐘[6]，之後再加 A23187；也有 PMA 50 nM 與 A23187 同時加入的做法。[1] 注意 PMA 單獨使用在 RBL-2H3 幾乎不引發分泌。[3]"],
+        ["鈣離子載體，負責把鈣帶進細胞","no","那是 A23187 的角色。[12] PMA 走的是 DAG／PKC 這一支。[13]"],
+        ["細胞膜破壞劑，使顆粒內容物漏出","no","那是 Triton X-100 的作用，用於之後取得細胞內總活性。"]],
+  act:()=>{W("[data-c]").forEach(w=>w.classList.add("stim"))}},
+ {t:"加入 A23187，37 °C 刺激",
+  q:"下列哪個條件與文獻中測量 β-hexosaminidase 的常見設定一致？",
+  opts:[["A23187 約 1 μM，37 °C 作用約 10–60 分鐘","ok","文獻例如 1 μM A23187 作用 1 小時[4]、1 μM 作用 10 分鐘[6]、1 μM 作用 30 分鐘[7]。測細胞激素才拉長到 2.5–4 小時。[1]"],
+        ["A23187 約 1 μM，37 °C 作用 24 小時","no","時間過長會造成鈣依賴性細胞死亡；A23187 本身也會解偶聯氧化磷酸化並抑制粒線體 ATPase。[12]"],
+        ["A23187 約 1 μM，4 °C 作用 30 分鐘","no","低溫會抑制胞吐，之後正是用冰浴來終止刺激。"]],
+  act:(done)=>runTimer("37 °C 刺激中（30 分鐘，加速顯示）",1800,done), async:true},
+ {t:"終止刺激",
+  q:"刺激時間到，如何讓所有孔同時停止脫顆粒？",
+  opts:[["將盤子立即放到冰上","ok","低溫可迅速停止胞吐，讓所有孔的刺激時間一致。文獻中即以冰浴終止反應。[7]"],
+        ["直接加入 Triton X-100","no","Triton 會破壞細胞膜，把細胞內的酵素全部釋出，這樣就分不出上清與細胞內的量了。"],
+        ["加入鹼性終止液","no","鹼性終止液是用在之後的酵素呈色反應，不是用來停止細胞刺激。"]],
+  act:()=>{setClock("冰上")}},
+ {t:"收集上清液 → S",
+  q:"收集上清液時的重點是什麼？",
+  opts:[["輕柔吸取，不要帶到細胞，移到新的 96 孔盤","ok","若吸到細胞，細胞內的酵素會被算成「已釋放」，上清活性被高估。"],
+        ["用力吹打讓細胞懸浮後一起吸出","no","這樣上清裡就含有細胞，分子與分母都會失真。"],
+        ["不必收集，直接在原孔加受質","no","必須把胞外（上清）與胞內（裂解液）分開測，才能算出釋放比例。"]],
+  act:()=>{W("[data-s]").forEach(w=>w.style.background="color-mix(in srgb,var(--teal) 10%,var(--well-empty))");W("[data-b]").forEach(w=>w.style.background="color-mix(in srgb,var(--teal) 10%,var(--well-empty))");document.getElementById("rxStatus").textContent="樣品已移入"}},
+ {t:"裂解細胞 → L",
+  q:"留在孔中的細胞要怎麼處理，才能測到細胞內殘留的 β-hexosaminidase？",
+  opts:[["加入與上清等體積、含 Triton X-100 的緩衝液裂解細胞","ok","文獻使用 0.05% Triton X-100 於含 1.8 mM CaCl₂ 的 HBSS[11]；也有以平行孔加 0.5% Triton X-100 取得總活性作為分母的做法。[4] 本模擬取與上清相同體積，計算可直接用 S ÷ (S + L)。"],
+        ["用 PBS 清洗後丟棄","no","丟掉就無法得知總量，% release 需要分母（總活性）。"],
+        ["加入鹼性終止液讓細胞破裂","no","高 pH 會讓酵素失活，之後就測不到活性了。"]],
+  act:()=>{W("[data-c]").forEach(w=>{w.classList.remove("cells");w.style.background="color-mix(in srgb,var(--cell) 25%,var(--well-empty))"});W("[data-l]").forEach(w=>w.style.background="color-mix(in srgb,var(--teal) 10%,var(--well-empty))")}},
+ {t:"加入 p-NAG 受質 37 °C",
+  q:"p-NAG 受質應該在什麼條件下反應？",
+  opts:[["約 1 mM p-NAG 溶於 0.05 M sodium citrate pH 4.5，37 °C 反應約 60 分鐘","ok","文獻做法：10 μL 樣品加 40 μL 1 mM p-NAG（0.05 M sodium citrate，pH 4.5），37 °C 60 分鐘。[11] Blank 只加緩衝液與受質。"],
+        ["溶於 pH 10.5 碳酸鹽緩衝液","no","β-hexosaminidase 是溶酶體酵素，在酸性 pH 才有活性；pH 10 以上的溶液是用來終止反應的。"],
+        ["溶於 pH 7.4 的刺激緩衝液，室溫 5 分鐘","no","pH 與時間都不適合，反應量會太少。"]],
+  act:(done)=>{colorRx("faint");document.getElementById("rxStatus").textContent="酵素反應中";runTimer("37 °C 酵素反應中（60 分鐘，加速顯示）",2000,done)}, async:true},
+ {t:"加入終止液",
+  q:"反應結束時要加入什麼？",
+  opts:[["鹼性終止液，例如 0.05 M Na₂CO₃／0.05 M NaHCO₃（pH 10.5）","ok","鹼性條件讓酵素停止作用，並使 p-nitrophenol 轉成黃色的 p-nitrophenolate。[11]"],
+        ["0.1 M HCl","no","酸性下產物幾乎無色，無法讓顏色最大化。回到「原理」的互動 2 拖到 pH 1–3 看看。"],
+        ["去離子水","no","水只會稀釋，酵素仍會繼續作用，各孔反應時間就不一致了。"]],
+  act:()=>{colorRx("stop");document.getElementById("rxStatus").textContent="已終止，呈黃色"}},
+ {t:"讀取吸光值",
+  q:"用讀盤機讀哪個波長？",
+  opts:[["405 nm","ok","p-nitrophenolate 在約 405 nm 有吸收。[11] 數據已送到「數據分析」頁。別忘了另一組平行盤要做 MTT／CCK-8，確認相同刺激條件下的細胞存活率。[12]"],
+        ["570 nm","no","570 nm 是 MTT 等試驗常用的波長，不是 p-nitrophenolate 的吸收波長。"],
+        ["260 nm","no","260 nm 是核酸的吸收波長。"]],
+  act:()=>{document.getElementById("rxStatus").textContent="已讀盤 OD405";renderAnalysis()}}
+];
+let cur=0;
+const stepList=document.getElementById("stepList"),con=document.getElementById("console");
+function setClock(t){document.getElementById("clock").textContent=t}
+function renderSteps(){stepList.innerHTML=steps.map((s,i)=>`<li class="${i<cur?"done":i===cur?"now":""}">${s.t}</li>`).join("")}
+function shuffle(a){return a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1])}
+function renderConsole(){
+  renderSteps();
+  if(cur>=steps.length){
+    con.innerHTML=`<div class="eyebrow">完成</div><h3>實驗流程全部完成</h3><p>OD405 讀值已產生，請到 <a href="#analysis">3 數據分析</a> 計算 % release。</p><div class="row"><button id="restart">重新做一次（產生新數據）</button></div>`;
+    document.getElementById("restart").onclick=()=>{cur=0;makeSim();buildPlates();setClock("Day 1");document.getElementById("rxStatus").textContent="尚未開始";renderAnalysis();renderConsole()};
+    return;
+  }
+  const s=steps[cur];
+  con.innerHTML=`<div class="eyebrow">步驟 ${cur+1} / ${steps.length}</div><h3>${s.t}</h3><p>${s.q}</p><div class="choice" id="opts"></div><div id="fb"></div>`;
+  const box=document.getElementById("opts");
+  shuffle(s.opts).forEach((o,j)=>{const b=document.createElement("button");b.id="opt"+cur+"_"+j;b.textContent=o[0];
+    b.onclick=()=>{const fb=document.getElementById("fb");
+      fb.innerHTML=`<div class="feedback ${o[1]}">${o[1]==="ok"?"✔ 正確。":"✘ 再想想。"}${o[2]}</div>`;
+      if(o[1]==="ok"){box.querySelectorAll("button").forEach(x=>x.disabled=true);
+        const go=()=>{fb.insertAdjacentHTML("beforeend",`<div class="row" style="margin-top:10px"><button class="primary" id="next">下一步 →</button></div>`);
+          document.getElementById("next").onclick=()=>{cur++;renderConsole()}};
+        if(s.async){s.act(go)}else{s.act();go()}}};
+    box.appendChild(b)});
+}
+function runTimer(label,ms,done){
+  const fb=document.getElementById("fb");
+  fb.insertAdjacentHTML("beforeend",`<div style="margin-top:10px" class="note">${label}</div><div class="timer"><div id="bar_t"></div></div>`);
+  const bar=document.getElementById("bar_t"),t0=performance.now();
+  const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(reduce){bar.style.width="100%";done();return}
+  (function tick(t){const p=Math.min(1,(t-t0)/ms);bar.style.width=(p*100)+"%";if(p<1)requestAnimationFrame(tick);else done()})(t0);
+}
+renderConsole();
+
+/* ---------- analysis ---------- */
+function renderAnalysis(){
+  const tb=document.getElementById("odTable");
+  let h=`<thead><tr><th>組別</th><th>重複</th><th class="num">S（上清）</th><th class="num">L（裂解液）</th></tr></thead><tbody>`;
+  groups.forEach(g=>sim.data[g.key].forEach((x,r)=>{h+=`<tr><td>${r===0?g.name:""}</td><td>${r+1}</td><td class="num">${x.S.toFixed(3)}</td><td class="num">${x.L.toFixed(3)}</td></tr>`}));
+  tb.innerHTML=h+"</tbody>";
+  document.getElementById("blankVal").textContent=sim.blank.toFixed(3);
+  document.getElementById("answerBox").innerHTML=groups.map(g=>`<div class="row" style="justify-content:space-between"><label for="ans_${g.key}">${g.name}</label><span><input type="number" step="0.1" id="ans_${g.key}"> %</span></div>`).join("");
+  document.getElementById("ansFeedback").innerHTML="";
+  document.getElementById("bar").innerHTML="";
+}
+function drawBar(){
+  const svg=document.getElementById("bar");const vals=groups.map(g=>truth(g.key));
+  const max=Math.max(60,Math.ceil(Math.max(...vals)/10)*10),x0=44,y0=200,h=170,bw=70,gap=30;
+  let s="";
+  for(let v=0;v<=max;v+=10){const y=y0-v/max*h;s+=`<line x1="${x0}" x2="350" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${x0-6}" y="${y+4}" font-size="10" text-anchor="end">${v}</text>`}
+  vals.forEach((v,i)=>{const x=x0+20+i*(bw+gap),y=y0-v/max*h;
+    s+=`<rect x="${x}" y="${y}" width="${bw}" height="${y0-y}" fill="${i===1?"var(--yellow)":"var(--teal)"}" rx="3"/><text x="${x+bw/2}" y="${y-5}" font-size="11" text-anchor="middle" class="mono">${v.toFixed(1)}</text><text x="${x+bw/2}" y="${y0+16}" font-size="11" text-anchor="middle">${["自發","刺激","刺激+測試物"][i]}</text>`});
+  s+=`<text x="12" y="110" font-size="11" transform="rotate(-90 12 110)" text-anchor="middle">% release（模擬）</text>`;
+  svg.innerHTML=s;
+}
+document.getElementById("checkAns").onclick=()=>{
+  let ok=0,lines=[];
+  groups.forEach(g=>{const v=parseFloat(document.getElementById("ans_"+g.key).value),t=truth(g.key);
+    const pass=!isNaN(v)&&Math.abs(v-t)<=1.0;if(pass)ok++;lines.push(`${g.name}：${isNaN(v)?"未填":pass?"✔":"✘"}`)});
+  document.getElementById("ansFeedback").innerHTML=`<div class="feedback ${ok===3?"ok":"no"}">${lines.join("<br>")}${ok<3?"<br>提示：先平均三重複，再分別扣 blank，最後代公式。":""}</div>`;
+  if(ok===3)drawBar();
+};
+document.getElementById("showAns").onclick=()=>{
+  const b=sim.blank;
+  const rows=groups.map(g=>{const a=sim.data[g.key],S=a.reduce((s,x)=>s+x.S,0)/3,L=a.reduce((s,x)=>s+x.L,0)/3;
+    return `${g.name}：S̄ = ${S.toFixed(3)}，L̄ = ${L.toFixed(3)} → (${(S-b).toFixed(3)}) ÷ (${(S-b).toFixed(3)} + ${(L-b).toFixed(3)}) × 100 = <b>${truth(g.key).toFixed(1)} %</b>`});
+  const net=k=>truth(k)-truth("spon"),inh=(1-net("inh")/net("stim"))*100;
+  document.getElementById("ansFeedback").innerHTML=`<div class="feedback ok mono" style="font-size:.85rem">${rows.join("<br>")}<br>抑制率 = (1 − ${net("inh").toFixed(1)} ÷ ${net("stim").toFixed(1)}) × 100 = <b>${inh.toFixed(1)} %</b></div>`;
+  drawBar();
+};
+document.getElementById("regen").onclick=()=>{makeSim();renderAnalysis();if(cur>=9)colorRx(cur>=11?"stop":"faint")};
+renderAnalysis();
+})();
+</script>
+<script>
+/* lab-print-style-v2 — 列印時展開所有摺疊問答，列印後還原 */
+(function(){
+  function all(){ return document.querySelectorAll("details"); }
+  window.addEventListener("beforeprint",function(){
+    all().forEach(function(d){ d.dataset.pwOpen = d.open ? "1" : "0"; d.open = true; });
+  });
+  window.addEventListener("afterprint",function(){
+    all().forEach(function(d){ d.open = d.dataset.pwOpen === "1"; delete d.dataset.pwOpen; });
+  });
+})();
+</script>
+</body>
+</html>

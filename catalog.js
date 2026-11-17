@@ -1,0 +1,108 @@
+/* ============================================================
+   catalog.js — 實驗互動講義清單
+   由 deploy_lab_pages.command 或 admin.html 維護。
+   注意：下方 = 之後必須是「嚴格 JSON」（鍵要加引號、不可有註解），
+         腳本才能解析與改寫。註解只能寫在這個檔頭區塊裡。
+   採 .js 而非 .json，是為了讓入口頁以 file:// 開啟時也能讀取。
+   ============================================================ */
+window.CATALOG = {
+  "meta": {
+    "title": "實驗操作互動講義",
+    "subtitle": "各實驗的原理、虛擬操作流程與數據分析練習。點按表頭可排序。",
+    "updated": "2026-11-17"
+  },
+  "columns": [
+    {
+      "key": "cell",
+      "label": "細胞株",
+      "sortable": true,
+      "visible": true,
+      "group": true
+    },
+    {
+      "key": "topic",
+      "label": "實驗主題 / 量測指標",
+      "sortable": true,
+      "visible": true
+    },
+    {
+      "key": "stimulus",
+      "label": "刺激方式",
+      "sortable": true,
+      "visible": true
+    },
+    {
+      "key": "version",
+      "label": "版號",
+      "sortable": true,
+      "visible": true,
+      "align": "right"
+    },
+    {
+      "key": "updated",
+      "label": "更新日期",
+      "sortable": true,
+      "visible": true,
+      "align": "right"
+    }
+  ],
+  "entries": [
+    {
+      "file": "RAW 264.7 LPS 誘導 NO (Griess 法) 實驗互動講義 v1.html",
+      "title": "LPS 誘導 NO 生成（Griess 法）",
+      "cell": "RAW 264.7",
+      "topic": "NO（Griess 法）",
+      "stimulus": "LPS",
+      "version": "v1",
+      "updated": "2026-11-11",
+      "superseded": []
+    },
+    {
+      "file": "RAW 264.7 LPS 誘導 ROS 實驗互動講義 v2.html",
+      "title": "LPS 誘導 ROS 生成",
+      "cell": "RAW 264.7",
+      "topic": "ROS",
+      "stimulus": "LPS",
+      "version": "v2",
+      "updated": "2026-11-11",
+      "superseded": [
+        {
+          "file": "RAW 264.7 LPS 誘導 ROS 實驗互動講義 v1.html",
+          "version": "v1",
+          "updated": "2026-11-11"
+        }
+      ]
+    },
+    {
+      "file": "β-Hexosaminidase 脫顆粒實驗模擬 (肥大細胞 RBL-2H3) v3.html",
+      "title": "β-Hexosaminidase 脫顆粒實驗模擬",
+      "cell": "RBL-2H3",
+      "topic": "β-hexosaminidase 脫顆粒",
+      "stimulus": "IgE / DNP-BSA",
+      "version": "v3",
+      "updated": "2026-11-17",
+      "superseded": [
+        {
+          "file": "β-Hexosaminidase 脫顆粒實驗模擬 (肥大細胞RBL-2H3) v2.html",
+          "version": "v2",
+          "updated": "2026-11-11"
+        },
+        {
+          "file": "β-Hexosaminidase 脫顆粒實驗模擬 (肥大細胞RBL-2H3) v1.html",
+          "version": "v1",
+          "updated": "2026-11-10"
+        }
+      ]
+    },
+    {
+      "file": "β-Hexosaminidase 脫顆粒實驗模擬 (A23187 + PMA 誘導, RBL-2H3) v1.html",
+      "title": "β-Hexosaminidase 脫顆粒實驗模擬（A23187 + PMA）",
+      "cell": "RBL-2H3",
+      "topic": "β-hexosaminidase 脫顆粒",
+      "stimulus": "A23187 + PMA",
+      "version": "v1",
+      "updated": "2026-11-17",
+      "superseded": []
+    }
+  ]
+};

@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAW 264.7 LPS 誘導 NO（Griess 法）實驗互動講義</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Same lab-notebook layout as the ROS handout; accent = Griess azo magenta, second = iNOS/NO teal. */
+:root{
+  --bg:#f6f3f5; --surface:#ffffff; --surface2:#efe8ec; --ink:#1d1519; --muted:#6a5c63; --line:#ddd2d8;
+  --accent:#a3266b; --accent-soft:#f6dfeb; --no:#1f7a86; --no-soft:#dcf0f2;
+  --warn:#a76a10; --warn-soft:#fbefd9; --bad:#b83a2e; --good:#1c8550;
+  --azo:163,38,107;
+  --display:"Noto Serif TC","Songti TC",serif; --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#141012; --surface:#1c1619; --surface2:#261d22; --ink:#ede4e8; --muted:#a8999f; --line:#3a2d33;
+    --accent:#ef6aa9; --accent-soft:#3d1a2b; --no:#4fc3d0; --no-soft:#123238;
+    --warn:#e2a74a; --warn-soft:#3a2b12; --bad:#ef6b5f; --good:#4fcf8a;
+    --azo:239,106,169;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.75}
+a{color:var(--accent)}
+h1,h2,h3{font-family:var(--display);line-height:1.35;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.6rem,3.4vw,2.3rem)}
+h2{font-size:1.55rem}
+h3{font-size:1.12rem;font-family:var(--body);font-weight:700}
+p{margin:0}
+.shell{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100%}
+nav.side{position:sticky;top:0;height:100vh;overflow:auto;border-right:1px solid var(--line);background:var(--surface);padding:20px 16px;display:flex;flex-direction:column;gap:14px}
+nav.side .brand{font-family:var(--display);font-weight:700;font-size:1.05rem;line-height:1.4}
+nav.side ol{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:2px}
+nav.side li a{display:flex;gap:10px;align-items:baseline;padding:6px 8px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:.93rem}
+nav.side li a:hover,nav.side li a:focus-visible{background:var(--surface2)}
+nav.side li a span.n{font-family:var(--mono);font-size:.78rem;color:var(--muted);min-width:1.6em}
+nav.side .legend{font-size:.82rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+main{padding:28px clamp(16px,4vw,56px) 80px;display:flex;flex-direction:column;gap:56px;min-width:0}
+header.hero{display:flex;flex-direction:column;gap:14px;max-width:62rem}
+.kicker{font-family:var(--mono);font-size:.8rem;color:var(--accent);letter-spacing:.04em}
+.lead{color:var(--muted);max-width:68ch}
+section.unit{display:flex;flex-direction:column;gap:20px;scroll-margin-top:16px}
+.unit-head{display:flex;gap:14px;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.unit-head .num{font-family:var(--mono);font-size:1rem;color:var(--accent);font-weight:600}
+.prose{display:flex;flex-direction:column;gap:12px;max-width:70ch}
+.prose ul,.prose ol,.card ul,.card ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px}
+.lv{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 8px;border-radius:999px;vertical-align:2px;margin-right:6px;font-family:var(--body);letter-spacing:.02em;white-space:nowrap}
+.lv.b{background:var(--no-soft);color:var(--no)}
+.lv.a{background:var(--accent-soft);color:var(--accent)}
+.lv.r{background:var(--warn-soft);color:var(--warn)}
+.cite{font-family:var(--mono);font-size:.75em;vertical-align:super;line-height:0;text-decoration:none;color:var(--accent);margin-left:1px}
+.cite.join::before{content:","}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.note{border-left:4px solid var(--warn);background:var(--warn-soft);padding:12px 16px;border-radius:0 8px 8px 0;max-width:74ch}
+.note.green{border-color:var(--no);background:var(--no-soft)}
+.note.red{border-color:var(--accent);background:var(--accent-soft)}
+.note>strong:first-child{display:block;margin-bottom:2px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--surface2);font-weight:700;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-family:var(--mono)}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+button,select,input{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--surface);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.9rem}
+.btn:hover{border-color:var(--accent)}
+.btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,.node:focus-visible,.well:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-size:.9rem}
+.controls label{display:flex;gap:6px;align-items:center}
+select,input[type=number],input[type=text]{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 8px}
+input[type=range]{accent-color:var(--accent)}
+canvas{display:block;width:100%}
+.sim-tag{font-family:var(--mono);font-size:.72rem;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:0 6px;align-self:flex-start}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--surface2);border-radius:8px;padding:10px 12px}
+.stat .k{font-size:.78rem;color:var(--muted)}
+.stat .v{font-family:var(--mono);font-size:1.2rem;font-weight:600}
+/* pathway */
+.pathway-wrap{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(260px,1fr);gap:16px}
+.pathway svg{width:100%;height:auto;display:block}
+.node{cursor:pointer}
+.node rect{stroke-width:1.5}
+.node text{font-family:var(--body);font-size:13px;pointer-events:none}
+.node.dim,.edge.dim{opacity:.13}
+.node.sel rect{stroke-width:3.5}
+.node.hit rect{stroke:var(--bad)!important;stroke-width:3.5;stroke-dasharray:5 3}
+.edge{fill:none;stroke-width:1.6}
+.infopanel{position:sticky;top:12px;align-self:start}
+.infopanel h3{font-family:var(--display)}
+/* griess animation */
+.griess svg{width:100%;height:auto;max-height:300px}
+.mol{transition:opacity .6s ease,transform .8s ease}
+@media (prefers-reduced-motion: reduce){.mol{transition:none}}
+/* stepper */
+.stepper{display:flex;flex-direction:column;border-left:2px solid var(--line);margin-left:10px}
+.step{position:relative;padding:0 0 18px 26px}
+.step::before{content:attr(data-n);position:absolute;left:-15px;top:0;width:28px;height:28px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);font-family:var(--mono);font-size:.8rem;font-weight:600;display:flex;align-items:center;justify-content:center}
+.step details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 16px}
+.step summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:10px}
+.step summary::-webkit-details-marker{display:none}
+.step summary .t{font-family:var(--mono);font-weight:400;color:var(--muted);font-size:.85rem;white-space:nowrap}
+.step .body{display:flex;flex-direction:column;gap:8px;padding-top:8px;font-size:.94rem}
+.why{color:var(--no);font-weight:700}
+.err{color:var(--bad);font-weight:700}
+/* plate */
+.plate{display:grid;grid-template-columns:22px repeat(12,minmax(0,1fr));gap:4px;background:var(--surface2);padding:12px;border-radius:14px;border:1px solid var(--line);max-width:640px}
+.plate .lab{font-family:var(--mono);font-size:.72rem;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.well{aspect-ratio:1;border-radius:50%;border:1.5px solid var(--line);cursor:pointer;background:var(--surface);padding:0;position:relative}
+.well.sel{outline:3px solid var(--ink);outline-offset:1px}
+.legend-row{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.82rem}
+.legend-row span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block;border:2px solid}
+/* std curve table inputs */
+.stdtab th,.stdtab td{padding:6px 8px}
+.stdtab input{-moz-appearance:textfield;appearance:textfield}
+.stdtab input::-webkit-inner-spin-button,.stdtab input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.stdtab input{width:5em;padding:2px 6px;font-family:var(--mono);font-size:.85rem;text-align:right}
+.ok{color:var(--good);font-weight:700}
+.bad{color:var(--bad);font-weight:700}
+/* quiz */
+.quiz{display:flex;flex-direction:column;gap:14px}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.q .qh{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.q .qn{font-family:var(--mono);color:var(--muted);font-size:.85rem}
+.q .opts{display:flex;flex-direction:column;gap:6px}
+.q .opt{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px;cursor:pointer}
+.q .opt:hover{border-color:var(--accent)}
+.q .opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--surface))}
+.q .opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--surface))}
+.q .fb{font-size:.92rem;display:none}
+.q.done .fb{display:block}
+.scorebar{position:sticky;bottom:12px;align-self:flex-start;background:var(--ink);color:var(--surface);border-radius:999px;padding:6px 16px;font-family:var(--mono);font-size:.9rem}
+.refs li{margin-bottom:6px;font-size:.88rem}
+.refs li:target{background:var(--accent-soft)}
+#glosTable td:first-child{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.glos-tools input{min-width:240px}
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr}
+  nav.side{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+  nav.side ol{flex-direction:row;flex-wrap:wrap}
+  nav.side .legend{display:none}
+  .pathway-wrap{grid-template-columns:1fr}
+  .infopanel{position:static}
+}
+/* ===== lab-print-style-v2 — 列印（Cmd-P）專用，自動注入 ===== */
+/* 同時相容兩種版型：分頁式（nav.tabs + 隱藏 section）與側欄式（nav.side + .shell） */
+@media print{
+  :root{--ink:#000;--ink-soft:#3a3a3a;--muted:#3a3a3a;--bg:#fff;--paper:#fff;
+        --surface:#fff;--surface2:#f2f2f2;--line:#bbb;color-scheme:light}
+  @page{margin:15mm 13mm}
+  body{font-size:10.5pt;background:#fff}
+  /* 版面攤平 */
+  .shell{display:block!important}
+  main{padding:0!important;gap:0!important;display:block!important}
+  nav,nav.side,nav.tabs{display:none!important}
+  header.top,header.hero{border-bottom:2px solid #000;padding:0 0 10px;margin-bottom:10px}
+  /* 分頁式：讓被隱藏的 section 全部顯示 */
+  main section{display:block!important;break-before:page;padding:0 0 8px}
+  main section:first-of-type{break-before:auto}
+  section.unit{break-before:page}
+  section.unit:first-of-type{break-before:auto}
+  h2{margin-top:12px}
+  .unit-head{border-bottom:2px solid #000}
+  /* 隱藏互動控制項，但保留測驗選項與內容 */
+  .controls,.seg,.btn,.scorebar,.glos-tools,.timer,.choice,
+  #console,#regen,#checkAns,#showAns,#qReset,
+  input[type=range],input[type=number],input[type=search],input[type=text],select
+    {display:none!important}
+  .opt,.q .opt{display:block!important;border:1px solid #999!important;background:#fff!important}
+  /* 區塊不被切斷 */
+  .card,.stat,.note,.q,.step,details{break-inside:avoid}
+  details summary{list-style:none;font-weight:700}
+  canvas,svg,table,.plate,.well,.eq,.formula{break-inside:avoid;max-width:100%}
+  tr{break-inside:avoid}
+  .sim-tag,.pill,.badge,.lv{border:1px solid #999}
+  /* 連結：本文不印網址，參考文獻才印 */
+  a{color:#000;text-decoration:none}
+  .refs a[href^="http"]::after,ol.refs a[href^="http"]::after
+    {content:" (" attr(href) ")";font-size:.72em;color:#444;word-break:break-all}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+<nav class="side" aria-label="單元目錄">
+  <div class="brand">RAW 264.7 × LPS × NO<br><span class="muted small">Griess 法互動實驗講義</span></div>
+  <a href="index.html" style="display:block;padding:6px 8px;margin-top:4px;border:1px solid var(--line);border-radius:6px;text-decoration:none;font-size:.86rem;text-align:center">← 返回講義總覽</a>
+  <ol>
+    <li><a href="#intro"><span class="n">01</span>NO 與本實驗</a></li>
+    <li><a href="#pathway"><span class="n">02</span>LPS → iNOS 訊息傳遞</a></li>
+    <li><a href="#enzyme"><span class="n">03</span>iNOS 酵素反應</a></li>
+    <li><a href="#down"><span class="n">04</span>NO 的下游影響</a></li>
+    <li><a href="#griess"><span class="n">05</span>Griess 反應原理</a></li>
+    <li><a href="#design"><span class="n">06</span>實驗設計與盤面</a></li>
+    <li><a href="#steps"><span class="n">07</span>實驗步驟解析</a></li>
+    <li><a href="#std"><span class="n">08</span>Nitrite 標準曲線</a></li>
+    <li><a href="#spec"><span class="n">09</span>分光光度計原理</a></li>
+    <li><a href="#results"><span class="n">10</span>結果判讀與分析</a></li>
+    <li><a href="#quiz"><span class="n">11</span>互動測驗</a></li>
+    <li><a href="#glossary"><span class="n">12</span>專有名詞</a></li>
+    <li><a href="#refs"><span class="n">13</span>參考文獻</a></li>
+  </ol>
+  <div class="legend">
+    <div><span class="lv b">基本</span>大學部／研究所皆適用</div>
+    <div><span class="lv a">進階</span>研究所適用</div>
+    <div><span class="lv r">建議</span>本講義依文獻整理的操作建議，非定論</div>
+    <div>上標數字＝參考文獻編號</div>
+  </div>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kicker">巨噬細胞發炎實驗 · iNOS · Griess reagent · 分光光度計呈色法</div>
+  <h1>以 RAW 264.7 巨噬細胞量測 LPS 誘導的一氧化氮（NO）</h1>
+  <p class="lead">本實驗室的目標：檢驗具抗發炎潛力的化合物或植物萃取物<strong>前處理</strong>巨噬細胞後，能否抑制 LPS 所誘導的 NO 生成。實驗以 Promega Griess Reagent System（G2930）的條件進行<a class="cite" href="#r1">1</a>。所有圖表中的數值皆為<strong>模擬數據</strong>，僅供教學示範，不代表真實實驗結果。</p>
+  <div class="note green small"><strong>閱讀方式</strong>每段標有 <span class="lv b">基本</span> 或 <span class="lv a">進階</span>。大學部可只讀「基本」，研究所請全部閱讀。標示 <span class="lv r">建議</span> 的內容是本講義依文獻整理的操作建議，請以實驗室 SOP 與預實驗為準。細胞株基本特性請見姊妹講義 <a href="RAW%20264.7%20LPS%20誘導%20ROS%20實驗互動講義%20v2.html">RAW 264.7 LPS 誘導 ROS 實驗互動講義</a>。</div>
+</header>
+
+<!-- 01 -->
+<section class="unit" id="intro">
+  <div class="unit-head"><span class="num">01</span><h2>NO 與本實驗</h2></div>
+  <div class="grid3">
+    <div class="card"><h3><span class="lv b">基本</span>NO 是什麼</h3><p class="small">一氧化氮是一種氣態自由基訊息分子，參與免疫、神經與心血管系統<a class="cite" href="#r1">1</a>。在巨噬細胞中，由<strong>誘導型一氧化氮合成酶（iNOS，又稱 NOS2）</strong>大量、持續地產生，可抑制或殺死病毒、細菌、真菌、原蟲、蠕蟲與腫瘤細胞<a class="cite" href="#r6">6</a>。</p></div>
+    <div class="card"><h3><span class="lv b">基本</span>為什麼量 nitrite</h3><p class="small">NO 半衰期很短，無法在上清液中直接定量。在含氧水溶液中，NO 主要被氧化成 <strong>nitrite（NO₂⁻）</strong>，幾乎不生成 nitrate<a class="cite" href="#r9">9</a>。nitrite 穩定且不揮發，是 NO 的兩種主要穩定產物之一，因此以上清液中累積的 nitrite 作為 NO 生成的指標<a class="cite" href="#r1">1</a>。</p></div>
+    <div class="card"><h3><span class="lv b">基本</span>本實驗量測什麼</h3><p class="small">LPS 刺激 → 細胞表現 iNOS → NO 釋放並轉成 nitrite 累積在培養液中 → 取上清液做 Griess 呈色 → 在 520–550 nm 讀吸光值 → 以 nitrite 標準曲線換算濃度<a class="cite" href="#r1">1</a>。</p></div>
+  </div>
+  <div class="note"><strong>結論寫法</strong>Griess 法量到的是上清液中的 nitrite，是 NO 生成的<em>間接</em>指標。結論請寫「上清液 nitrite 累積量下降（表示 NO 生成受抑制）」，不要寫成「NO 濃度為 X µM」。若樣品中有 nitrate 需要一起量，須先用 nitrate reductase 等方法把 nitrate 還原成 nitrite <span class="lv a">進階</span>。</div>
+</section>
+
+<!-- 02 -->
+<section class="unit" id="pathway">
+  <div class="unit-head"><span class="num">02</span><h2>LPS → iNOS 訊息傳遞</h2></div>
+  <div class="prose">
+    <p><span class="lv b">基本</span>LPS 經 TLR4 啟動兩條路徑：<strong>MyD88 路徑</strong>快速活化 NF-κB 與 MAPK；<strong>TRIF 路徑</strong>經 IRF3 誘導 IFN-β，IFN-β 再以自分泌方式活化 STAT1 與 IRF1。小鼠 iNOS 基因（<em>Nos2</em>）啟動子上的 NF-κB 位點是 LPS 誘導所必需<a class="cite" href="#r2">2</a>；IRF-1 結合位點則負責與干擾素訊號的協同作用<a class="cite" href="#r3">3</a>。</p>
+    <p><span class="lv a">進階</span>在 RAW 264.7 中，LPS 誘導的 IFN-β 決定了 iNOS 誘導的<strong>時間點</strong>：STAT1 磷酸化的時間與內生性 IFN-β 表現一致，外加 IFN-β 可加速 iNOS 誘導<a class="cite" href="#r4">4</a>。在 STAT1 缺失或第一型干擾素受體缺失的巨噬細胞，LPS 誘導的 iNOS mRNA 明顯減少，但 TNF-α mRNA 不受影響<a class="cite" href="#r5">5</a>。這說明 iNOS 需要「NF-κB ＋ 干擾素–STAT1–IRF1」兩股訊號。</p>
+  </div>
+  <div class="controls" role="group" aria-label="路徑篩選">
+    <span class="small muted">顯示：</span>
+    <button class="btn" data-path="all" aria-pressed="true">全部</button>
+    <button class="btn" data-path="myd">MyD88 路徑</button>
+    <button class="btn" data-path="trif">TRIF–IFN-β–STAT1 路徑</button>
+    <span class="small muted" style="margin-left:8px">抑制劑作用點：</span>
+    <select id="inhSel" aria-label="選擇抑制劑">
+      <option value="">（無）</option>
+      <option value="dex">Dexamethasone</option>
+      <option value="que">Quercetin</option>
+      <option value="nac">NAC</option>
+      <option value="pdtc">PDTC（文獻工具藥）</option>
+      <option value="nosi">iNOS 酵素抑制劑（L-NIL、L-NAME 等）</option>
+    </select>
+  </div>
+  <div class="pathway-wrap">
+    <div class="card pathway"><svg id="pathSvg" viewBox="0 0 760 740" role="img" aria-label="LPS 誘導 iNOS 的訊息路徑圖，可點選節點"></svg></div>
+    <div class="card infopanel" id="info" aria-live="polite"><h3>點選節點</h3><p class="small muted">點路徑圖中的任一方框，查看它在 iNOS 誘導中的角色。選擇上方的抑制劑，作用點會以紅色虛線框標出。</p></div>
+  </div>
+  <div class="note small"><strong>預留擴充</strong>同一條 NF-κB／MAPK 路徑也會誘導 COX-2（→ PGE₂）、TNF-α、IL-6 等發炎指標。本講義目前專注於 iNOS／NO，這些指標保留給後續單元。</div>
+</section>
+
+<!-- 03 -->
+<section class="unit" id="enzyme">
+  <div class="unit-head"><span class="num">03</span><h2>iNOS 酵素反應</h2></div>
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="lv b">基本</span>反應式</h3>
+      <p class="mono" style="font-size:1.02rem">L-arginine + O₂ + NADPH → NO + L-citrulline</p>
+      <p class="small">所有 NOS 都以 O₂ 與 NADPH 為共受質，並需要 heme、FAD、FMN、四氫生物蝶呤（BH4）與還原態硫醇等輔因子<a class="cite" href="#r8">8</a>。</p>
+    </div>
+    <div class="card">
+      <h3><span class="lv b">基本</span>iNOS 和 nNOS／eNOS 有何不同</h3>
+      <ul class="small">
+        <li><strong>不需鈣離子上升</strong>：iNOS 以極高親和力緊密結合 calmodulin，在靜止的低鈣濃度下即可結合<a class="cite" href="#r7">7</a><a class="cite" href="#r8">8</a>；因此一旦合成出來就有活性<a class="cite" href="#r7">7</a>。</li>
+        <li><strong>以轉錄誘導調控</strong>：巨噬細胞 NOS2 的表現主要由細胞激素與微生物產物在轉錄層次誘導<a class="cite" href="#r6">6</a>。</li>
+        <li><strong>量大且持續</strong>：所以稱為 high-output NOS<a class="cite" href="#r6">6</a><a class="cite" href="#r10">10</a>。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="lv a">進階</span>功能性二聚體</h3>
+      <p class="small">NOS2 必須組裝成二聚體才有活性，組裝過程需要至少 17 個結合反應<a class="cite" href="#r6">6</a>。這也是藥物可能作用的位置之一。</p>
+    </div>
+    <div class="card">
+      <h3><span class="lv a">進階</span>受質不足時的副產物</h3>
+      <p class="small">在巨噬細胞中，若 L-arginine 不足，iNOS 會產生 superoxide 與 peroxynitrite<a class="cite" href="#r10">10</a>。Arginase II 會與 iNOS 競爭 L-arginine，在 RAW 264.7 中可降低 NO 生成<a class="cite" href="#r11">11</a>。這把 NO 與 ROS 兩份講義連在一起。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section class="unit" id="down">
+  <div class="unit-head"><span class="num">04</span><h2>NO 的下游影響</h2></div>
+  <p class="small muted">點選卡片標題可展開。</p>
+  <div class="grid2">
+    <details class="card"><summary><strong><span class="lv b">基本</span>sGC → cGMP → PKG</strong></summary><p class="small">經典路徑：NO 結合可溶性鳥苷酸環化酶（sGC）上的 heme 鐵，產生 cGMP，再活化 cGMP 依賴性蛋白激酶（PKG）<a class="cite" href="#r13">13</a>。這是 NO 作為訊息分子（例如血管舒張）的主要機制。</p></details>
+    <details class="card"><summary><strong><span class="lv b">基本</span>抗微生物與細胞毒性</strong></summary><p class="small">持續產生的 NO 讓巨噬細胞對病毒、細菌、真菌、原蟲、蠕蟲與腫瘤細胞具有抑制或毒殺能力；酸、glutathione、cysteine、H₂O₂ 或 superoxide 等其他巨噬細胞產物會增強這些作用<a class="cite" href="#r6">6</a>。</p></details>
+    <details class="card"><summary><strong><span class="lv a">進階</span>S-nitrosylation</strong></summary><p class="small">非經典機制：NO 衍生物把亞硝基加到蛋白質 cysteine 的硫醇上，形成 S-nitrosothiol（SNO），以轉譯後修飾的方式傳遞訊號<a class="cite" href="#r13">13</a>。</p></details>
+    <details class="card"><summary><strong><span class="lv a">進階</span>與 superoxide 生成 peroxynitrite</strong></summary><p class="small">NO 與 superoxide（O₂•⁻）反應生成強氧化劑 peroxynitrite（ONOO⁻），會造成氧化傷害<a class="cite" href="#r13">13</a>。iNOS 在受質不足時本身也會產生 O₂•⁻ 與 ONOO⁻<a class="cite" href="#r10">10</a>。這就是 ROS 與 NO 兩個實驗彼此相關的原因。</p></details>
+    <details class="card"><summary><strong><span class="lv a">進階</span>抑制粒線體呼吸</strong></summary><p class="small">奈莫耳濃度的 NO 會與 O₂ 競爭，快速且可逆地抑制 cytochrome c oxidase；peroxynitrite 則可打開粒線體通透性轉換孔，釋出 cytochrome c，可能引發凋亡<a class="cite" href="#r12">12</a>。</p></details>
+    <details class="card"><summary><strong><span class="lv b">基本</span>轉成穩定產物</strong></summary><p class="small">在含氧水溶液中，NO 主要轉成 nitrite；有 oxyhemoglobin 等氧化性血紅素蛋白存在時，才會進一步完全轉成 nitrate<a class="cite" href="#r9">9</a>。培養液中沒有這類蛋白，因此量 nitrite 即可反映 NO 生成。</p></details>
+  </div>
+</section>
+
+<!-- 05 -->
+<section class="unit" id="griess">
+  <div class="unit-head"><span class="num">05</span><h2>Griess 反應原理</h2></div>
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="lv b">基本</span>試劑組成（G2930）<a class="cite" href="#r1">1</a></h3>
+      <div class="tablewrap"><table>
+        <tr><th>成分</th><th>組成</th></tr>
+        <tr><td>Sulfanilamide Solution</td><td>1% sulfanilamide in 5% phosphoric acid</td></tr>
+        <tr><td>NED Solution</td><td>0.1% N-1-naphthylethylenediamine dihydrochloride in water</td></tr>
+        <tr><td>Nitrite Standard</td><td>0.1 M sodium nitrite in water</td></tr>
+      </table></div>
+      <p class="small"><strong>保存</strong>：4 °C、避光，用完立即放回 4 °C。兩種溶液要<strong>分開</strong>保存，預混成單一溶液會大幅縮短保存期限。NED 溶液未避光可能變色，但對結果沒有顯著影響<a class="cite" href="#r1">1</a>。</p>
+    </div>
+    <div class="card griess">
+      <h3><span class="lv b">基本</span>兩步反應</h3>
+      <svg id="griessSvg" viewBox="0 0 520 260" role="img" aria-label="Griess 反應兩步驟示意">
+        <rect x="0" y="0" width="520" height="260" fill="none"/>
+        <g class="mol" id="gm-sulf"><rect x="10" y="40" width="130" height="44" rx="8" fill="var(--no-soft)" stroke="var(--no)"/><text x="75" y="67" text-anchor="middle" font-size="14" fill="var(--ink)">Sulfanilamide</text></g>
+        <g class="mol" id="gm-no2"><circle cx="75" cy="140" r="24" fill="var(--warn-soft)" stroke="var(--warn)"/><text x="75" y="145" text-anchor="middle" font-size="14" fill="var(--ink)">NO₂⁻</text></g>
+        <g class="mol" id="gm-h"><text x="75" y="205" text-anchor="middle" font-size="13" fill="var(--muted)">H⁺（磷酸）</text></g>
+        <g class="mol" id="gm-diazo" opacity="0"><rect x="190" y="40" width="140" height="44" rx="8" fill="var(--warn-soft)" stroke="var(--warn)"/><text x="260" y="67" text-anchor="middle" font-size="14" fill="var(--ink)">重氮鹽 Ar–N₂⁺</text></g>
+        <g class="mol" id="gm-ned" opacity="0"><rect x="190" y="150" width="140" height="44" rx="8" fill="var(--surface2)" stroke="var(--muted)"/><text x="260" y="177" text-anchor="middle" font-size="14" fill="var(--ink)">NED</text></g>
+        <g class="mol" id="gm-azo" opacity="0"><rect x="370" y="90" width="140" height="56" rx="10" fill="rgb(var(--azo))" stroke="rgb(var(--azo))"/><text x="440" y="115" text-anchor="middle" font-size="14" fill="#fff">偶氮染料</text><text x="440" y="134" text-anchor="middle" font-size="12" fill="#fff">紫紅色</text></g>
+        <path id="ga1" d="M145 62 L185 62" stroke="var(--muted)" stroke-width="2" marker-end="url(#arr)" opacity="0"/>
+        <path id="ga2" d="M335 70 L365 108" stroke="var(--muted)" stroke-width="2" marker-end="url(#arr)" opacity="0"/>
+        <path id="ga3" d="M335 170 L365 130" stroke="var(--muted)" stroke-width="2" marker-end="url(#arr)" opacity="0"/>
+        <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+        <text id="gcap" x="260" y="245" text-anchor="middle" font-size="13" fill="var(--muted)">按「下一步」開始</text>
+      </svg>
+      <div class="controls"><button class="btn" id="gPrev">上一步</button><button class="btn" id="gNext">下一步</button><button class="btn" id="gReset">重來</button></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="lv b">基本</span>為什麼要「依序」加入</h3>
+      <p class="small">Sulfanilamide 與 NED 會<strong>競爭 nitrite</strong>，所以兩者依序加入的靈敏度較高：先加 sulfanilamide 反應 5–10 分鐘，再加 NED<a class="cite" href="#r1">1</a>。紫紅色會立即開始出現，吸收峰約在 540 nm 附近，讀值須在 30 分鐘內完成，之後顏色可能褪去<a class="cite" href="#r1">1</a>。</p>
+    </div>
+    <div class="card">
+      <h3><span class="lv b">基本</span>偵測極限與基質效應</h3>
+      <p class="small">在超純水中以此 protocol 的偵測極限為 2.5 µM（125 pmol）nitrite；靈敏度隨基質而異（水、含血清與酚紅的 RPMI、血漿、血清、尿液的標準曲線斜率不同）。因此<strong>每次實驗都要用與樣品相同的基質</strong>（本實驗即同一種完全培養液）做標準曲線<a class="cite" href="#r1">1</a>。</p>
+    </div>
+    <div class="card">
+      <h3><span class="lv a">進階</span>干擾物質</h3>
+      <ul class="small">
+        <li><strong>還原劑</strong>：第一步產生的陽離子重氮中間物容易被還原劑破壞<a class="cite" href="#r25">25</a>。</li>
+        <li><strong>硫醇</strong>：在酸性條件下，nitrite 會亞硝化硫醇；硫醇濃度接近毫莫耳時會與 sulfanilamide 競爭 nitrite。有文獻指出硫醇 &gt; 500 µM 時即可能干擾<a class="cite" href="#r26">26</a>。NAC 是硫醇，常用濃度為 mM 級（見第 06 單元），須特別注意。</li>
+        <li><strong>NADPH</strong>：會干擾 Griess 化學反應<a class="cite" href="#r25">25</a>，在細胞上清液中通常不是問題，但做酵素反應時要注意。</li>
+        <li><strong>有色樣品</strong>：植物萃取物若在 540 nm 附近有吸收，會讓讀值偏高。需要「不含細胞」的樣品背景組<a class="cite" href="#r34">34</a>。</li>
+      </ul>
+      <p class="small">Griess 與其他分光光度法都可能受多種干擾與假象影響，使用外加抗氧化劑的研究尤須留意<a class="cite" href="#r24">24</a>。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section class="unit" id="design">
+  <div class="unit-head"><span class="num">06</span><h2>實驗設計與盤面</h2></div>
+  <div class="tablewrap"><table>
+    <tr><th>組別</th><th>處理</th><th>回答的問題</th><th>等級</th></tr>
+    <tr><td>培養液空白（無細胞）</td><td>完全培養液，不加細胞</td><td>培養液本身的背景吸光值</td><td><span class="lv b">基本</span></td></tr>
+    <tr><td>細胞對照組</td><td>細胞，不處理</td><td>基礎 nitrite 量</td><td><span class="lv b">基本</span></td></tr>
+    <tr><td>溶劑組（vehicle）</td><td>細胞 + 溶劑（例如 DMSO，最終濃度與樣品組相同）</td><td>溶劑本身是否影響 NO 或存活</td><td><span class="lv b">基本</span></td></tr>
+    <tr><td>LPS 低／中／高</td><td>LPS 0.5、1、5 µg/mL</td><td>NO 生成是否隨 LPS 劑量增加；選一個濃度作為篩選條件</td><td><span class="lv b">基本</span></td></tr>
+    <tr><td>Positive control（抑制）</td><td>Dexamethasone 前處理 + LPS</td><td>系統能否偵測到「抑制」；作為樣品抑制效果的比較基準</td><td><span class="lv b">基本</span></td></tr>
+    <tr><td>參考抑制劑</td><td>Quercetin、NAC 前處理 + LPS</td><td>不同機制抑制劑的參考值</td><td><span class="lv b">基本</span></td></tr>
+    <tr><td>樣品 低／中／高 + LPS</td><td>萃取物（≤ 最高無毒濃度）前處理 + LPS</td><td>樣品是否以劑量依賴方式抑制 NO</td><td><span class="lv b">基本</span></td></tr>
+    <tr><td>樣品單獨（有細胞、無 LPS）</td><td>最高濃度樣品</td><td>樣品本身是否誘導 NO（例如被內毒素污染）</td><td><span class="lv a">進階</span></td></tr>
+    <tr><td>樣品背景（無細胞）</td><td>最高濃度樣品 + 培養液，不加細胞</td><td>樣品顏色是否在 540 nm 造成讀值偏高<a class="cite" href="#r34">34</a></td><td><span class="lv b">基本</span></td></tr>
+    <tr><td>添加回收試驗（spike recovery）</td><td>無細胞培養液 + 抑制劑或樣品 + 已知濃度 nitrite</td><td>抑制劑或樣品是否干擾 Griess 化學反應（對 NAC 特別重要）</td><td><span class="lv r">建議</span></td></tr>
+  </table></div>
+
+  <h3>文獻常用條件與本實驗室條件</h3>
+  <div class="tablewrap"><table>
+    <tr><th>項目</th><th>本實驗室</th><th>文獻整理</th></tr>
+    <tr><td>細胞密度</td><td>4 × 10⁴ cells/well，96-well</td><td>文獻差異大，例如 96-well 每孔 1 × 10⁵ <a class="cite" href="#r20">20</a></td></tr>
+    <tr><td>LPS 濃度</td><td>0.5、1、5 µg/mL</td><td>常見 100 ng/mL<a class="cite" href="#r29">29</a>、200 ng/mL<a class="cite" href="#r16">16</a>、1 µg/mL<a class="cite" href="#r28">28</a><a class="cite" href="#r27">27</a></td></tr>
+    <tr><td>前處理時間</td><td>依實驗室 SOP</td><td>最常見為 LPS 前 <strong>1 小時</strong><a class="cite" href="#r16">16</a><a class="cite" href="#r28">28</a><a class="cite" href="#r29">29</a><a class="cite" href="#r27">27</a></td></tr>
+    <tr><td>LPS 刺激時間</td><td>依實驗室 SOP</td><td>最常見為 <strong>24 小時</strong><a class="cite" href="#r16">16</a><a class="cite" href="#r28">28</a><a class="cite" href="#r29">29</a><a class="cite" href="#r27">27</a>；J774 細胞的 nitrite 累積約 48 小時達平台<a class="cite" href="#r15">15</a></td></tr>
+    <tr><td>樣品濃度上限</td><td>MTT 存活率 ≥ 90% 的最高濃度</td><td>多數文獻同時報告 MTT，以排除細胞毒性造成的假抑制<a class="cite" href="#r28">28</a><a class="cite" href="#r21">21</a></td></tr>
+  </table></div>
+
+  <h3>參考抑制劑濃度</h3>
+  <div class="grid3">
+    <div class="card">
+      <h3>Dexamethasone</h3>
+      <p class="small">在 J774 巨噬細胞中，0.1–10 µM 劑量依賴性抑制 LPS 誘導的 NO 與 iNOS 蛋白<a class="cite" href="#r14">14</a>；更早的研究顯示 0.001–1 µM 即有劑量依賴抑制<a class="cite" href="#r15">15</a>。RAW 264.7 實例：10 µM 前處理 1 小時<a class="cite" href="#r16">16</a>；IC₅₀ 約 8.3 µM<a class="cite" href="#r17">17</a>；6.25 µM 與 LPS 同時加入抑制約 56%<a class="cite" href="#r18">18</a>。</p>
+      <p class="small"><span class="lv r">建議</span>以 <strong>1–10 µM</strong> 做劑量測試，10 µM 是 RAW 264.7 文獻常見的單一濃度。</p>
+      <p class="small"><span class="lv a">進階</span>Dex 要在 iNOS 誘導<strong>之前或同時</strong>給予；酵素一旦被誘導出來，Dex 就無效<a class="cite" href="#r15">15</a>。在 J774 中，Dex 會使 iNOS mRNA 不穩定（半衰期由約 5 小時 40 分降到 3 小時），但對 LPS + IFN-γ 刺激無效<a class="cite" href="#r14">14</a>。</p>
+    </div>
+    <div class="card">
+      <h3>Quercetin</h3>
+      <p class="small">在 RAW 264.7 中，quercetin 前處理顯著抑制 LPS 誘導的 NO，且非細胞毒性所致；機制包括抑制 IκB 分解（NF-κB）及 ERK、p38、JNK 的磷酸化<a class="cite" href="#r19">19</a>。5、10、20 µM 呈劑量依賴抑制且不影響存活<a class="cite" href="#r20">20</a>；另一研究在 100 µM 時存活率下降而未測試<a class="cite" href="#r21">21</a>。</p>
+      <p class="small"><span class="lv r">建議</span>以 <strong>10–20 µM</strong> 作為參考濃度，並先以 MTT 確認。</p>
+    </div>
+    <div class="card">
+      <h3>NAC</h3>
+      <p class="small">NAC 在 LPS 前 2 小時加入時，對大鼠腹腔巨噬細胞 NO 誘導的抑制最強，機制與抑制 NF-κB 有關<a class="cite" href="#r22">22</a>。RAW 264.7 文獻常用 <strong>10 mM</strong><a class="cite" href="#r23">23</a>。3T3-L1 脂肪細胞以 20 mM 預處理 24 小時僅降低 NO 49%<a class="cite" href="#r30">30</a>。</p>
+      <p class="small"><span class="lv r">建議</span>NAC 主要是 ROS 實驗的參考抑制劑，在 NO 實驗中效果通常是部分抑制。由於 mM 級硫醇可能干擾 Griess 反應<a class="cite" href="#r26">26</a>，若使用 NAC，請加做無細胞的添加回收試驗；或考慮在 LPS 刺激前換掉含 NAC 的培養液（此做法會改變實驗設計，需自行評估）。</p>
+    </div>
+  </div>
+
+  <h3>互動盤面：Griess 讀值盤（示意）</h3>
+  <p class="small muted">標準品放在第 1–3 欄，依 Promega 建議的盤面格式<a class="cite" href="#r1">1</a>；其餘孔位為各組上清液（各 50 µL，三重複）。顏色深淺代表模擬的呈色強度。點任一孔查看說明。</p>
+  <span class="sim-tag">模擬數據</span>
+  <div class="grid2">
+    <div><div class="plate" id="plate" role="grid" aria-label="96 孔盤配置"></div>
+      <div class="legend-row" id="plateLegend" style="margin-top:10px"></div></div>
+    <div class="card" id="wellInfo" aria-live="polite"><h3>點選孔位</h3><p class="small muted">點盤面上的孔，查看該組的處理與目的。</p></div>
+  </div>
+</section>
+
+<!-- 07 -->
+<section class="unit" id="steps">
+  <div class="unit-head"><span class="num">07</span><h2>實驗步驟解析</h2></div>
+  <p class="small muted">點各步驟展開「為什麼」與「常見錯誤」。Griess 步驟依 Promega TB229<a class="cite" href="#r1">1</a>。</p>
+  <div class="stepper">
+    <div class="step" data-n="0"><details><summary>前置：MTT 決定樣品最高無毒濃度<span class="t">事前</span></summary><div class="body">
+      <p>以 MTT 測試各樣品濃度，選出存活率 ≥ 90% 的最高濃度，作為 NO 實驗的高濃度組。</p>
+      <p><span class="why">為什麼：</span>細胞死亡本身就會讓 NO 下降，造成「假抑制」。先排除毒性濃度，抑制效果才能歸因於抗發炎作用。</p>
+      <p><span class="err">常見錯誤：</span>只在沒有 LPS 的條件下測 MTT。LPS 可能改變細胞對樣品的敏感度，<span class="lv r">建議</span>在「樣品 + LPS」條件下也確認存活率。</p>
+    </div></details></div>
+    <div class="step" data-n="1"><details><summary>種細胞<span class="t">Day 0</span></summary><div class="body">
+      <p>每孔種 4 × 10⁴ 顆 RAW 264.7 於 96-well 培養盤，讓細胞貼附（依實驗室 SOP，通常隔夜）。</p>
+      <p><span class="why">為什麼：</span>各孔細胞數一致，nitrite 量才能比較。</p>
+      <p><span class="err">常見錯誤：</span>細胞懸浮液沒混勻，造成孔間細胞數差異；邊緣孔蒸發造成體積不一，<span class="lv r">建議</span>外圈孔加培養液或 PBS 不作為實驗孔。</p>
+    </div></details></div>
+    <div class="step" data-n="2"><details><summary>前處理樣品與參考抑制劑<span class="t">Day 1，LPS 前約 1 h</span></summary><div class="body">
+      <p>加入樣品（低／中／高）、Dexamethasone、quercetin、NAC 與溶劑組。文獻最常見前處理 1 小時<a class="cite" href="#r16">16</a><a class="cite" href="#r28">28</a><a class="cite" href="#r29">29</a>。</p>
+      <p><span class="why">為什麼：</span>本實驗室的目標是「前處理能否抑制」。Dex 這類作用在 iNOS 表現層次的藥物，必須在 iNOS 誘導前給予才有效<a class="cite" href="#r15">15</a>。</p>
+      <p><span class="err">常見錯誤：</span>各組溶劑最終濃度不同；沒有設溶劑組。</p>
+    </div></details></div>
+    <div class="step" data-n="3"><details><summary>LPS 刺激<span class="t">Day 1 → Day 2，約 24 h</span></summary><div class="body">
+      <p>加入 LPS 至最終濃度 0.5、1、5 µg/mL（樣品組通常固定使用其中一個濃度），培養約 24 小時。</p>
+      <p><span class="why">為什麼：</span>nitrite 是隨時間累積的產物；24 小時是文獻最常見的時間點<a class="cite" href="#r16">16</a><a class="cite" href="#r28">28</a><a class="cite" href="#r29">29</a>。若要看 iNOS mRNA，則需較早時間點（例如 6 小時）<a class="cite" href="#r29">29</a>。</p>
+      <p><span class="err">常見錯誤：</span>LPS 只加到部分孔就去做別的事，造成各組刺激時間不同。</p>
+    </div></details></div>
+    <div class="step" data-n="4"><details><summary>準備標準曲線<span class="t">Day 2</span></summary><div class="body">
+      <p>以<strong>相同的完全培養液</strong>將 0.1 M Nitrite Standard 稀釋 1:1,000，配成 1 mL 的 100 µM。在讀值盤第 1–3 欄的 B–H 列各加 50 µL 培養液，A 列三孔各加 100 µL 的 100 µM，立即向下做 6 次二倍序列稀釋（每次取 50 µL），最後從 1.56 µM 那列丟掉 50 µL；H 列不加 nitrite（0 µM）。濃度為 100、50、25、12.5、6.25、3.13、1.56、0 µM，每孔最終 50 µL<a class="cite" href="#r1">1</a>。</p>
+      <p><span class="why">為什麼：</span>靈敏度隨基質改變，所以每次實驗都要做、而且要用相同基質<a class="cite" href="#r1">1</a>。</p>
+      <p><span class="err">常見錯誤：</span>用水配標準品但樣品是培養液；沿用上次的標準曲線。</p>
+    </div></details></div>
+    <div class="step" data-n="5"><details><summary>取上清液<span class="t">Day 2</span></summary><div class="body">
+      <p>每組取 50 µL 上清液到新的 96-well 平底盤<a class="cite" href="#r1">1</a>。</p>
+      <p><span class="why">為什麼：</span>nitrite 在上清液中；移到新盤可避免細胞與殘留物影響讀值，且原培養盤可留作後續檢測。</p>
+      <p><span class="err">常見錯誤：</span>吸到細胞或產生氣泡；氣泡會讓吸光值異常。</p>
+    </div></details></div>
+    <div class="step" data-n="6"><details><summary>Griess 呈色<span class="t">約 20 min</span></summary><div class="body">
+      <ol>
+        <li>Sulfanilamide 與 NED 溶液先回溫至室溫（15–30 分鐘）。</li>
+        <li>以多管微量吸管在所有樣品孔與標準品孔加 50 µL Sulfanilamide Solution。</li>
+        <li>室溫避光 5–10 分鐘。</li>
+        <li>所有孔加 50 µL NED Solution。</li>
+        <li>室溫避光 5–10 分鐘，紫紅色會立即開始出現<a class="cite" href="#r1">1</a>。</li>
+      </ol>
+      <p><span class="why">為什麼：</span>依序加入可避免兩者競爭 nitrite，靈敏度較高<a class="cite" href="#r1">1</a>。</p>
+      <p><span class="err">常見錯誤：</span>試劑冰冷時直接使用；把兩種試劑預先混合（protocol 建議依序加入）。</p>
+    </div></details></div>
+    <div class="step" data-n="7"><details><summary>讀吸光值<span class="t">30 min 內</span></summary><div class="body">
+      <p>以 BioTek Epoch 讀 520–550 nm 範圍內的波長（例如 540 nm），須在 30 分鐘內完成，之後顏色可能褪色<a class="cite" href="#r1">1</a>。Epoch 為單色器式，可在 200–999 nm 以 1 nm 為單位選波長<a class="cite" href="#r31">31</a>。</p>
+      <p><span class="why">為什麼：</span>在吸收峰附近讀值靈敏度最高；同一盤標準品與樣品同時讀，條件一致。</p>
+      <p><span class="err">常見錯誤：</span>讀值前沒有檢查氣泡；放太久才讀。</p>
+    </div></details></div>
+    <div class="step" data-n="8"><details><summary>計算與統計<span class="t">分析</span></summary><div class="body">
+      <p>標準品平均 OD 對濃度作圖（Y = 吸光值，X = nitrite 濃度），以樣品平均 OD 從標準曲線換算濃度<a class="cite" href="#r1">1</a>。詳見第 08 與第 10 單元。</p>
+    </div></details></div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section class="unit" id="std">
+  <div class="unit-head"><span class="num">08</span><h2>Nitrite 標準曲線</h2></div>
+  <div class="prose">
+    <p><span class="lv b">基本</span>依 Promega 做法，標準品平均吸光值放 Y 軸、nitrite 濃度放 X 軸<a class="cite" href="#r1">1</a>，以線性迴歸得到 <span class="mono">OD = a × [NO₂⁻] + b</span>，再反推樣品濃度：<span class="mono">[NO₂⁻] = (OD − b) / a</span>。</p>
+    <p><span class="lv b">基本</span>判斷標準曲線是否可用：R² 是否接近 1、三重複是否一致、樣品 OD 是否落在標準品範圍內。樣品 OD 若高於 100 µM 標準品，應稀釋樣品後重測，並乘回稀釋倍數。<span class="lv r">建議</span></p>
+  </div>
+  <span class="sim-tag">模擬數據，可自行修改</span>
+  <div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(520px,1fr))">
+    <div class="card">
+      <div class="controls">
+        <label><input type="checkbox" id="stdBlank" checked> 扣除 0 µM 空白</label>
+        <button class="btn" id="stdDemo">示範：移液誤差</button>
+        <button class="btn" id="stdReset">還原</button>
+      </div>
+      <div class="tablewrap stdtab"><table id="stdTable"></table></div>
+    </div>
+    <div class="card">
+      <canvas id="stdCanvas" height="300" aria-label="標準曲線圖"></canvas>
+      <div class="statgrid">
+        <div class="stat"><div class="k">斜率 a</div><div class="v" id="sA">–</div></div>
+        <div class="stat"><div class="k">截距 b</div><div class="v" id="sB">–</div></div>
+        <div class="stat"><div class="k">R²</div><div class="v" id="sR">–</div></div>
+      </div>
+      <h3>反推樣品濃度</h3>
+      <div class="controls">
+        <label>樣品平均 OD <input type="number" id="unkOD" value="0.210" step="0.001" style="width:7em"></label>
+        <label>稀釋倍數 <input type="number" id="unkDF" value="1" min="1" step="1" style="width:5em"></label>
+      </div>
+      <p id="unkOut" class="small"></p>
+    </div>
+  </div>
+</section>
+
+<!-- 09 -->
+<section class="unit" id="spec">
+  <div class="unit-head"><span class="num">09</span><h2>分光光度計原理</h2></div>
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="lv b">基本</span>Beer–Lambert 定律</h3>
+      <p class="mono">A = ε · l · c</p>
+      <ul class="small">
+        <li>A：吸光值（OD），A = −log₁₀(I/I₀)。A = 1 表示只有 10% 的光通過，A = 2 表示 1%。</li>
+        <li>ε：莫耳吸光係數（M⁻¹ cm⁻¹），由物質與波長決定。Griess 偶氮產物在 540 nm 約 3.7–3.8 × 10⁴ M⁻¹ cm⁻¹<a class="cite" href="#r33">33</a>。</li>
+        <li>l：光徑（cm）。</li>
+        <li>c：濃度（M）。</li>
+      </ul>
+      <p class="small">A 與 c 成正比，所以能用標準曲線換算濃度<a class="cite" href="#r32">32</a>。</p>
+    </div>
+    <div class="card">
+      <h3><span class="lv b">基本</span>儀器構造（以 BioTek Epoch 為例）<a class="cite" href="#r31">31</a></h3>
+      <ul class="small">
+        <li><strong>光源</strong>：氙氣閃光燈</li>
+        <li><strong>分光</strong>：單色器（不需濾光片），200–999 nm，每 1 nm 可選，頻寬 5 nm，波長準確度 ±2 nm</li>
+        <li><strong>偵測器</strong>：光二極體</li>
+        <li><strong>動態範圍</strong>：0–4.0 OD，解析度 0.0001 OD</li>
+        <li><strong>讀取模式</strong>：endpoint、kinetic、光譜掃描、孔內區域掃描；支援 6–384 孔盤與光徑校正</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="lv b">基本</span>盤式讀取儀的光徑是「垂直」的</h3>
+      <p class="small">比色管光徑固定 1 cm；微孔盤是光垂直穿過液面，光徑隨<strong>孔內體積</strong>與孔的尺寸改變<a class="cite" href="#r32">32</a>。所以同一盤中每孔體積必須相同（本實驗每孔 50 + 50 + 50 = 150 µL）。</p>
+      <p class="small"><span class="lv a">進階</span>Gen5 軟體可用水在 977 nm 的吸收峰（以 900 nm 為空白）除以 0.18（水在 1 cm 的 OD）推算光徑，換算成 1 cm 的值<a class="cite" href="#r32">32</a>。本實驗用同盤標準曲線定量，不需光徑校正。</p>
+    </div>
+    <div class="card">
+      <h3><span class="lv b">基本</span>空白與波長</h3>
+      <ul class="small">
+        <li><strong>空白扣除</strong>：扣掉培養液與試劑本身的吸光（0 µM 標準品或無細胞培養液孔）。</li>
+        <li><strong>波長選擇</strong>：在吸收峰讀值，斜率最大、靈敏度最高。Promega 建議 520–550 nm<a class="cite" href="#r1">1</a>。</li>
+        <li><strong>線性範圍</strong>：OD 太高時偏離線性，所以要確認樣品落在標準曲線範圍內。</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>虛擬讀取儀</h3>
+  <p class="small muted">調整 nitrite 濃度、讀值波長與孔內總體積，觀察吸光值變化。光徑以孔內徑約 6.8 mm 的圓柱估算，忽略液面彎曲，僅供示意。</p>
+  <span class="sim-tag">模擬</span>
+  <div class="grid2">
+    <div class="card">
+      <div class="controls" style="flex-direction:column;align-items:stretch">
+        <label>樣品 nitrite（加試劑前）<input type="range" id="vC" min="0" max="120" value="50" step="1"><span class="mono" id="vCv"></span></label>
+        <label>讀值波長<input type="range" id="vL" min="400" max="700" value="540" step="1"><span class="mono" id="vLv"></span></label>
+        <label>孔內總體積<input type="range" id="vV" min="60" max="300" value="150" step="10"><span class="mono" id="vVv"></span></label>
+      </div>
+      <div class="statgrid">
+        <div class="stat"><div class="k">光徑 l</div><div class="v" id="vPl">–</div></div>
+        <div class="stat"><div class="k">吸光值 A</div><div class="v" id="vA">–</div></div>
+        <div class="stat"><div class="k">透光率 T</div><div class="v" id="vT">–</div></div>
+      </div>
+      <p class="small" id="vMsg"></p>
+    </div>
+    <div class="card"><canvas id="specCanvas" height="280" aria-label="偶氮產物吸收光譜示意"></canvas>
+      <p class="small muted">光譜形狀為依 Promega 圖示（峰值約 540 nm）繪製的示意曲線<a class="cite" href="#r1">1</a>；ε 取 3.8 × 10⁴ M⁻¹ cm⁻¹<a class="cite" href="#r33">33</a>。</p></div>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="unit" id="results">
+  <div class="unit-head"><span class="num">10</span><h2>結果判讀與分析</h2></div>
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="lv b">基本</span>計算流程</h3>
+      <ol class="small">
+        <li>每孔 OD 扣除空白（0 µM 標準品）。</li>
+        <li>以標準曲線換算 nitrite（µM），乘上稀釋倍數。</li>
+        <li>若樣品背景組有吸光，扣除樣品顏色貢獻。</li>
+        <li>計算抑制率：<br><span class="mono">% 抑制 = (LPS − 處理組) / (LPS − 控制組) × 100</span></li>
+        <li>對照同條件的存活率，確認抑制不是細胞毒性造成。</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3><span class="lv r">建議</span>統計與呈現</h3>
+      <ul class="small">
+        <li>每組至少三重複孔，並做至少三次獨立實驗；以平均 ± SD 呈現。</li>
+        <li>多組比較用單因子變異數分析，事後檢定可用 Dunnett（各處理組 vs. LPS 組）。</li>
+        <li>要算 IC₅₀ 時，濃度點要足夠（例如 5 個以上），並涵蓋抑制 50% 上下的範圍。</li>
+        <li>圖中同時標示 NO（長條）與存活率，讀者才能判斷是否為假抑制。</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>結果分析模擬器</h3>
+  <p class="small muted">開啟下面的情境，觀察常見陷阱如何改變結論。抑制率以 LPS 1 µg/mL 組為基準。</p>
+  <span class="sim-tag">模擬數據</span>
+  <div class="controls">
+    <label><input type="checkbox" id="scTox"> 情境 A：高濃度樣品其實有毒性</label>
+    <label><input type="checkbox" id="scColor"> 情境 B：樣品有顏色，且未扣背景</label>
+    <label><input type="checkbox" id="scNac"> 情境 C：NAC 干擾 Griess 反應</label>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="card"><canvas id="resCanvas" height="320" aria-label="各組 nitrite 長條圖"></canvas></div>
+    <div class="card"><div class="tablewrap"><table id="resTable"></table></div><div id="resMsg" class="small"></div></div>
+  </div>
+
+  <div class="note red"><strong>判讀重點</strong>一個有效的「抑制」結論需要同時滿足：(1) LPS 組明顯高於控制組；(2) Dex 組有抑制，表示系統正常；(3) 樣品組抑制具劑量依賴；(4) 相同濃度存活率 ≥ 90%；(5) 樣品背景與 Griess 干擾已排除。</div>
+</section>
+
+<!-- 11 -->
+<section class="unit" id="quiz">
+  <div class="unit-head"><span class="num">11</span><h2>互動測驗</h2></div>
+  <p class="small muted">由易到難。選擇答案後會立即顯示解析。</p>
+  <div class="quiz" id="quizBox"></div>
+  <div class="scorebar" id="score">得分 0 / 0</div>
+</section>
+
+<!-- 12 -->
+<section class="unit" id="glossary">
+  <div class="unit-head"><span class="num">12</span><h2>專有名詞</h2></div>
+  <div class="glos-tools controls"><input type="text" id="glosQ" placeholder="搜尋縮寫、英文或中文" aria-label="搜尋專有名詞"><span class="small muted" id="glosN"></span></div>
+  <div class="tablewrap"><table id="glosTable"><thead><tr><th>縮寫</th><th>英文全名</th><th>台灣繁體中文譯名</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<!-- 13 -->
+<section class="unit" id="refs">
+  <div class="unit-head"><span class="num">13</span><h2>參考文獻</h2></div>
+  <ol class="refs">
+    <li id="r1">Promega. <em>Griess Reagent System</em> Technical Bulletin TB229, product G2930 (Revised 6/09).（本實驗室使用之 protocol）</li>
+    <li id="r2">Xie QW, Kashiwabara Y, Nathan C. Role of transcription factor NF-κB/Rel in induction of nitric oxide synthase. <em>J Biol Chem</em> 1994;269:4705–4708.</li>
+    <li id="r3">Martin E, Nathan C, Xie QW. Role of interferon regulatory factor 1 in induction of nitric oxide synthase. <em>J Exp Med</em> 1994;180:977–984. doi:10.1084/jem.180.3.977</li>
+    <li id="r4">Jacobs AT, Ignarro LJ. Lipopolysaccharide-induced expression of interferon-β mediates the timing of inducible nitric-oxide synthase induction in RAW 264.7 macrophages. <em>J Biol Chem</em> 2001;276:47950–47957. doi:10.1074/jbc.M106639200</li>
+    <li id="r5">Ohmori Y, Hamilton TA. Requirement for STAT1 in LPS-induced gene expression in macrophages. <em>J Leukoc Biol</em> 2001;69:598. doi:10.1189/jlb.69.4.598</li>
+    <li id="r6">MacMicking J, Xie QW, Nathan C. Nitric oxide and macrophage function. <em>Annu Rev Immunol</em> 1997;15:323–350. doi:10.1146/annurev.immunol.15.1.323</li>
+    <li id="r7">Cho HJ, Xie QW, Calaycay J, et al. Calmodulin is a subunit of nitric oxide synthase from macrophages. <em>J Exp Med</em> 1992;176:599–604. doi:10.1084/jem.176.2.599</li>
+    <li id="r8">Michel T, Feron O. Nitric oxide synthases: which, where, how, and why? <em>J Clin Invest</em> 1997;100:2146–2152.</li>
+    <li id="r9">Ignarro LJ, Fukuto JM, Griscavage JM, Rogers NE, Byrns RE. Oxidation of nitric oxide in aqueous solution to nitrite but not nitrate. <em>Proc Natl Acad Sci USA</em> 1993;90:8103–8107. doi:10.1073/pnas.90.17.8103</li>
+    <li id="r10">Xia Y, Zweier JL. Superoxide and peroxynitrite generation from inducible nitric oxide synthase in macrophages. <em>Proc Natl Acad Sci USA</em> 1997;94:6954–6958. doi:10.1073/pnas.94.13.6954</li>
+    <li id="r11">Gotoh T, Mori M. Arginase II downregulates nitric oxide (NO) production and prevents NO-mediated apoptosis in murine macrophage-derived RAW 264.7 cells. <em>J Cell Biol</em> 1999.</li>
+    <li id="r12">Nitric oxide, cytochrome c and mitochondria. <em>Biochem Soc Symp</em> 1999;66:17–25. doi:10.1042/bss0660017（PMID 10989653）</li>
+    <li id="r13">Furuta S. S-Nitrosylation. <em>Encyclopedia</em> (2021). https://encyclopedia.pub/entry/12545</li>
+    <li id="r14">Korhonen R, Lahti A, Hämäläinen M, Kankaanranta H, Moilanen E. Dexamethasone inhibits inducible nitric-oxide synthase expression and nitric oxide production by destabilizing mRNA in lipopolysaccharide-treated macrophages. <em>Mol Pharmacol</em> 2002;62:698–704.（J774 細胞）</li>
+    <li id="r15">Di Rosa M, Radomski M, Carnuccio R, Moncada S. Glucocorticoids inhibit the induction of nitric oxide synthase in macrophages. <em>Biochem Biophys Res Commun</em> 1990.（J774 細胞）</li>
+    <li id="r16">Oncotarget 2018;9:16284–16296. doi:10.18632/oncotarget.24616（RAW 264.7；Dex 10 µM、前處理 1 h、LPS 200 ng/mL、24 h）</li>
+    <li id="r17">Molecules 2016;21:1175. doi:10.3390/molecules21091175（RAW 264.7；Dex IC₅₀ 8.32 ± 1.45 µM）</li>
+    <li id="r18">Pharmaceuticals 2019;12:85.（RAW 264.7；Dex 6.25 µM、L-NAME 62.5 µM 為 positive control）</li>
+    <li id="r19">Mu MM, Chakravortty D, Sugiyama T, et al. The inhibitory action of quercetin on lipopolysaccharide-induced nitric oxide production in RAW 264.7 macrophage cells. <em>J Endotoxin Res</em> 2001;7:431–438. doi:10.1179/096805101101533034</li>
+    <li id="r20">Won WY, Kim JT, Kim KH, et al. Quercetin inhibits inflammation responses via MAPKs and NF-κB signaling pathways in LPS-stimulated RAW264.7 cells. 2022（KoreaScience JAKO202205360793792）</li>
+    <li id="r21">Biomol Ther 2016;24:610–615. doi:10.4062/biomolther.2016.026（quercetin 100 µM 存活率下降未測）</li>
+    <li id="r22">Pahan K, Sheikh FG, Namboodiri AMS, Singh I. N-acetyl cysteine inhibits induction of NO production by endotoxin or cytokine stimulated rat peritoneal macrophages, C6 glial cells and astrocytes. <em>Free Radic Biol Med</em> 1998;24:39–48.</li>
+    <li id="r23">Paromov V, Qui M, Yang H, Smith M, Stone WL. The influence of N-acetyl-L-cysteine on oxidative stress and nitric oxide synthesis in stimulated macrophages treated with a mustard gas analogue. <em>BMC Cell Biol</em> 2008;9:33. doi:10.1186/1471-2121-9-33</li>
+    <li id="r24">Tsikas D, Mikuteit M. N-Acetyl-L-cysteine in human rheumatoid arthritis and its effects on nitric oxide (NO) and malondialdehyde (MDA): analytical and clinical considerations. <em>Amino Acids</em> 2022. doi:10.1007/s00726-022-03185-x</li>
+    <li id="r25">Eliminating absorbing interference using the H-point standard addition method: case of Griess assay in the presence of interferent heme enzymes such as NOS.（core.ac.uk 216949863；說明重氮中間物易受還原劑影響、NADPH 與硫醇干擾）</li>
+    <li id="r26">US Patent 6,627,738. NO-modified hemoglobins and uses therefor.（Saville/Griess 法：硫醇 &gt; 500 µM 可能干擾、硫醇與 sulfanilamide 競爭）</li>
+    <li id="r27">Molecules 2016;21:1490. doi:10.3390/molecules21111490（RAW 264.7；前處理 1 h、LPS 1 µg/mL、24 h；L-NIL 50 µM 為 positive control）</li>
+    <li id="r28">BMC Complement Altern Med 2018. doi:10.1186/s12906-018-2088-x（RAW 264.7；前處理 1 h、LPS 1 µg/mL、24 h；MTT）</li>
+    <li id="r29">BMC Complement Altern Med 2015. doi:10.1186/s12906-015-0971-2（RAW 264.7；前處理 1 h、LPS 100 ng/mL、24 h；iNOS mRNA 於 6 h）</li>
+    <li id="r30">J UOEH (J-STAGE) 29(4)：NAC 5–20 mM 預處理 24 h 抑制 3T3-L1 脂肪細胞 LPS + TNF-α 誘導之 NO。</li>
+    <li id="r31">Agilent. <em>BioTek Epoch Microplate Spectrophotometer Data Sheet</em> 5994-5373EN.</li>
+    <li id="r32">Agilent BioTek. <em>Spectrophotometric nucleic acid quantification / Path length correction</em> application note 5994-2762EN.</li>
+    <li id="r33">Ridnour LA, et al. A spectrophotometric method for the direct detection and quantitation of nitric oxide, nitrite, and nitrate in cell culture media. <em>Anal Biochem</em> 2000;281:223.</li>
+    <li id="r34">Nanotechnology Characterization Laboratory. <em>NCL Method ITA-7: Detection of nitric oxide production by the macrophage cell line RAW264.7</em>（以無細胞孔評估樣品干擾）</li>
+  </ol>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C=r=>`<a class="cite" href="#r${r}">${r}</a>`;
+
+/* ---------- 02 pathway ---------- */
+const N=[
+ {id:'lps',x:320,y:10,w:120,t:'LPS',p:'both',lv:'b',d:`革蘭氏陰性菌外膜成分。本實驗使用 0.5、1、5 µg/mL。`},
+ {id:'cd14',x:290,y:58,w:180,t:'LBP / CD14',p:'both',lv:'b',d:`協助把 LPS 交給 TLR4/MD-2 受器複合體。`},
+ {id:'tlr4',x:290,y:106,w:180,t:'TLR4 / MD-2',p:'both',lv:'b',d:`辨識 LPS 的受器，啟動 MyD88 與 TRIF 兩條路徑。`},
+ {id:'myd',x:70,y:172,w:150,t:'MyD88',p:'myd',lv:'b',d:`快速路徑的接合蛋白，導向 NF-κB 與 MAPK 活化。`},
+ {id:'traf6',x:70,y:220,w:150,t:'IRAK / TRAF6',p:'myd',lv:'a',d:`MyD88 下游的激酶與 E3 泛素連接酶，進一步活化 TAK1。`},
+ {id:'tak1',x:70,y:268,w:150,t:'TAK1',p:'myd',lv:'a',d:`同時活化 IKK 複合體與 MAPK。`},
+ {id:'ikk',x:20,y:316,w:120,t:'IKK',p:'myd',lv:'b',d:`磷酸化 IκBα，使其被降解。`},
+ {id:'ikb',x:20,y:364,w:120,t:'IκBα 降解',p:'myd',lv:'b',d:`IκBα 原本把 NF-κB 留在細胞質；降解後 NF-κB 進入細胞核。Quercetin 可抑制 IκB 降解${C(19)}。`},
+ {id:'nfkb',x:20,y:412,w:120,t:'NF-κB',p:'myd',lv:'b',d:`<em>Nos2</em> 啟動子上 TATA box 上游約 55 bp 的 NF-κB 位點（NF-κBd）是 LPS 誘導所必需；結合的蛋白含 p50、c-Rel 與 RelA（p65）。NF-κB 抑制劑 PDTC 可同時阻斷其活化與 NO 生成${C(2)}。`},
+ {id:'mapk',x:160,y:316,w:130,t:'MAPK（p38/JNK/ERK）',p:'myd',lv:'b',d:`LPS 活化三種 MAPK；quercetin 可抑制其磷酸化${C(19)}。`},
+ {id:'ap1',x:160,y:364,w:130,t:'AP-1 等因子',p:'myd',lv:'a',d:`MAPK 下游的轉錄因子之一，協同調控發炎基因轉錄。`},
+ {id:'trif',x:530,y:172,w:170,t:'TRAM / TRIF',p:'trif',lv:'b',d:`第二條路徑的接合蛋白，導向 IRF3 與 IFN-β。`},
+ {id:'tbk1',x:530,y:220,w:170,t:'TBK1',p:'trif',lv:'a',d:`磷酸化並活化 IRF3。`},
+ {id:'irf3',x:530,y:268,w:170,t:'IRF3',p:'trif',lv:'b',d:`誘導 IFN-β 基因表現。`},
+ {id:'ifnb',x:530,y:316,w:170,t:'IFN-β（分泌）',p:'trif',lv:'b',d:`LPS 會大量誘導並分泌 IFN-β，作為自分泌／旁分泌訊號；外加 IFN-β 可加速 iNOS 誘導${C(4)}。`},
+ {id:'ifnar',x:530,y:364,w:170,t:'IFNAR → JAK',p:'trif',lv:'a',d:`第一型干擾素受體。受體缺失的巨噬細胞中，LPS 誘導的 iNOS mRNA 明顯減少${C(5)}。`},
+ {id:'stat1',x:530,y:412,w:170,t:'STAT1',p:'trif',lv:'b',d:`LPS 處理後 STAT1 在 Tyr701 與 Ser727 磷酸化，時間與 IFN-β 表現一致${C(4)}。STAT1 缺失時 LPS 誘導的 iNOS mRNA 嚴重受損${C(5)}。`},
+ {id:'irf1',x:530,y:460,w:170,t:'IRF1',p:'trif',lv:'b',d:`LPS 誘導 IRF1 的動力學與 IFN-β 相似${C(4)}。<em>Nos2</em> 啟動子上的 IRF-E 位點是 IFN-γ 協同增強轉錄所需${C(3)}。`},
+ {id:'nos2',x:230,y:500,w:300,t:'Nos2 基因轉錄（細胞核）',p:'both',lv:'b',d:`NF-κB 與 IRF 訊號在 <em>Nos2</em> 啟動子匯合。巨噬細胞 NOS2 主要由轉錄誘導調控${C(6)}。`},
+ {id:'mrna',x:290,y:560,w:180,t:'iNOS mRNA',p:'both',lv:'a',d:`mRNA 穩定度也是調控點：在 J774 中，LPS 誘導的 iNOS mRNA 半衰期約 5 小時 40 分，Dexamethasone 會縮短到約 3 小時${C(14)}。`},
+ {id:'inos',x:290,y:620,w:180,t:'iNOS 蛋白（二聚體）',p:'both',lv:'b',d:`需組裝成二聚體，並緊密結合 calmodulin，不需鈣離子上升即可持續催化${C(6)}${C(7)}。`},
+ {id:'no',x:320,y:690,w:120,t:'NO → NO₂⁻',p:'both',lv:'b',d:`NO 在含氧水溶液中主要氧化成 nitrite${C(9)}，這就是 Griess 法量測的對象。`},
+ {id:'arg',x:40,y:620,w:180,t:'Arginase（競爭 L-Arg）',p:'both',lv:'a',d:`Arginase II 與 iNOS 競爭 L-arginine，可降低 RAW 264.7 的 NO 生成${C(11)}。`},
+ {id:'gr',x:560,y:560,w:170,t:'Glucocorticoid（Dex）',p:'both',lv:'b',d:`Dexamethasone 抑制 iNOS 誘導，必須在誘導前給予${C(15)}。`}
+];
+const E=[['lps','cd14'],['cd14','tlr4'],['tlr4','myd'],['tlr4','trif'],['myd','traf6'],['traf6','tak1'],['tak1','ikk'],['tak1','mapk'],['ikk','ikb'],['ikb','nfkb'],['mapk','ap1'],['trif','tbk1'],['tbk1','irf3'],['irf3','ifnb'],['ifnb','ifnar'],['ifnar','stat1'],['stat1','irf1'],['nfkb','nos2'],['ap1','nos2'],['irf1','nos2'],['stat1','nos2'],['nos2','mrna'],['mrna','inos'],['inos','no'],['arg','inos','inh'],['gr','mrna','inh']];
+const INH={
+ dex:{t:['gr','mrna'],txt:`<strong>Dexamethasone</strong>：在 J774 中使 iNOS mRNA 不穩定，劑量依賴性降低 iNOS 蛋白與 NO；對 LPS + IFN-γ 刺激無效${C(14)}。須在誘導前或同時給予，酵素已誘導後無效${C(15)}。`},
+ que:{t:['ikb','mapk'],txt:`<strong>Quercetin</strong>：抑制 IκB-α／IκB-β 降解，阻止 NF-κB 釋出；並抑制 ERK1/2、p38、JNK 磷酸化，使 iNOS 蛋白誘導受阻${C(19)}。`},
+ nac:{t:['nfkb'],txt:`<strong>NAC</strong>：在大鼠腹腔巨噬細胞中抑制 LPS 誘導的 NF-κB 活化與 iNOS 表現；LPS 前 2 小時給予效果最強${C(22)}。`},
+ pdtc:{t:['nfkb'],txt:`<strong>PDTC</strong>：NF-κB 抑制劑，可阻斷 NF-κBd 結合蛋白的活化與 NO 生成${C(2)}。本實驗室未使用，列為機制參考。`},
+ nosi:{t:['inos'],txt:`<strong>iNOS 酵素抑制劑</strong>：直接抑制酵素活性，而非抑制表現。文獻以 L-NIL 50 µM${C(27)}或 L-NAME 62.5 µM${C(18)}作為 positive control。`}
+};
+const svg=$('#pathSvg'), NS='http://www.w3.org/2000/svg';
+const byId={}; N.forEach(n=>{n.h=34;byId[n.id]=n});
+function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e}
+// membrane + nucleus decor
+svg.appendChild(el('line',{x1:10,y1:150,x2:750,y2:150,stroke:'var(--line)','stroke-width':6}));
+const lt=el('text',{x:742,y:144,'text-anchor':'end','font-size':11,fill:'var(--muted)'});lt.textContent='細胞膜';svg.appendChild(lt);
+svg.appendChild(el('rect',{x:210,y:488,width:340,height:120,rx:18,fill:'none',stroke:'var(--line)','stroke-dasharray':'6 4'}));
+const nt=el('text',{x:540,y:604,'text-anchor':'end','font-size':11,fill:'var(--muted)'});nt.textContent='細胞核';svg.appendChild(nt);
+const edgeEls=[];
+E.forEach(([a,b,k])=>{const A=byId[a],B=byId[b];let x1,y1,x2,y2;
+  if(k==='inh'){ if(A.x<B.x){x1=A.x+A.w;x2=B.x;}else{x1=A.x;x2=B.x+B.w;} y1=A.y+A.h/2;y2=B.y+B.h/2;}
+  else{x1=A.x+A.w/2;y1=A.y+A.h;x2=B.x+B.w/2;y2=B.y;}
+  const my=(y1+y2)/2;
+  const p=el('path',{d:k==='inh'?`M${x1},${y1} L${x2},${y2}`:`M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`,class:'edge',stroke:k==='inh'?'var(--bad)':'var(--muted)','stroke-dasharray':k==='inh'?'5 4':'',
+    'marker-end':k==='inh'?'':'url(#pa)'});
+  p.dataset.a=a;p.dataset.b=b;svg.appendChild(p);edgeEls.push(p);
+  if(k==='inh'){svg.appendChild(el('line',{x1:x2,y1:y2-8,x2:x2,y2:y2+8,stroke:'var(--bad)','stroke-width':3}));}
+});
+const defs=el('defs',{});const mk=el('marker',{id:'pa',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto'});mk.appendChild(el('path',{d:'M0,0 L10,5 L0,10 z',fill:'var(--muted)'}));defs.appendChild(mk);svg.appendChild(defs);
+const nodeEls={};
+N.forEach(n=>{const g=el('g',{class:'node',tabindex:0,role:'button','aria-label':n.t});
+  const fill=n.p==='myd'?'var(--accent-soft)':n.p==='trif'?'var(--no-soft)':'var(--surface2)';
+  const st=n.p==='myd'?'var(--accent)':n.p==='trif'?'var(--no)':'var(--muted)';
+  g.appendChild(el('rect',{x:n.x,y:n.y,width:n.w,height:n.h,rx:8,fill,stroke:st}));
+  const tx=el('text',{x:n.x+n.w/2,y:n.y+22,'text-anchor':'middle',fill:'var(--ink)'});tx.textContent=n.t;g.appendChild(tx);
+  g.addEventListener('click',()=>selNode(n.id));g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selNode(n.id)}});
+  svg.appendChild(g);nodeEls[n.id]=g;});
+function selNode(id){const n=byId[id];Object.values(nodeEls).forEach(g=>g.classList.remove('sel'));nodeEls[id].classList.add('sel');
+  $('#info').innerHTML=`<h3>${n.t}</h3><p><span class="lv ${n.lv}">${n.lv==='b'?'基本':'進階'}</span></p><p class="small">${n.d}</p>`;}
+$$('[data-path]').forEach(b=>b.addEventListener('click',()=>{$$('[data-path]').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');
+  const p=b.dataset.path;N.forEach(n=>nodeEls[n.id].classList.toggle('dim',!(p==='all'||n.p===p||n.p==='both')));
+  edgeEls.forEach(e=>{const a=byId[e.dataset.a].p,bb=byId[e.dataset.b].p;e.classList.toggle('dim',!(p==='all'||((a===p||a==='both')&&(bb===p||bb==='both'))));});}));
+$('#inhSel').addEventListener('change',e=>{const v=e.target.value;Object.values(nodeEls).forEach(g=>g.classList.remove('hit'));
+  if(!v){$('#info').innerHTML='<h3>點選節點</h3><p class="small muted">點路徑圖中的任一方框，查看它在 iNOS 誘導中的角色。</p>';return}
+  INH[v].t.forEach(id=>nodeEls[id].classList.add('hit'));$('#info').innerHTML=`<h3>抑制劑作用點</h3><p class="small">${INH[v].txt}</p><p class="small muted">紅色虛線框為作用位置。</p>`;});
+
+/* ---------- 05 griess animation ---------- */
+const GS=[
+ {show:[],cap:'按「下一步」開始'},
+ {show:['ga1','gm-diazo'],hide:['gm-no2'],cap:'步驟 1：酸性（磷酸）下，nitrite 與 sulfanilamide 形成重氮鹽（diazotization）'},
+ {show:['ga1','gm-diazo','gm-ned'],hide:['gm-no2'],cap:'步驟 2：加入 NED（先等 5–10 分鐘）'},
+ {show:['ga1','gm-diazo','gm-ned','ga2','ga3','gm-azo'],hide:['gm-no2'],cap:'偶氮偶合（azo coupling）→ 紫紅色偶氮染料，於 520–550 nm 讀值'}
+];
+let gi=0;const gAll=['ga1','ga2','ga3','gm-diazo','gm-ned','gm-azo','gm-no2'];
+function gDraw(){const s=GS[gi];gAll.forEach(id=>{const e=document.getElementById(id);let o=id==='gm-no2'?1:0;if(s.show.includes(id))o=1;if((s.hide||[]).includes(id))o=.15;e.setAttribute('opacity',o);e.style.opacity=o;});$('#gcap').textContent=s.cap;}
+$('#gNext').onclick=()=>{gi=Math.min(GS.length-1,gi+1);gDraw()};$('#gPrev').onclick=()=>{gi=Math.max(0,gi-1);gDraw()};$('#gReset').onclick=()=>{gi=0;gDraw()};gDraw();
+
+/* ---------- shared simulated assay model ---------- */
+// OD540 (150 µL final) ≈ blank + slope*[nitrite in 50 µL sample]; slope consistent with ε≈3.8e4, 1/3 dilution, l≈0.41 cm
+const SLOPE=0.0052, BLANK=0.048;
+function rng(seed){let s=seed;return()=>{s=(s*16807)%2147483647;return (s-1)/2147483646}}
+function noise(r,sd){let u=0,v=0;while(!u)u=r();v=r();return sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+
+/* ---------- 06 plate ---------- */
+const STD=[100,50,25,12.5,6.25,3.13,1.56,0];
+const GROUPS=[
+ {k:'blank',n:'培養液空白（無細胞）',no:0,col:'#9a8f94',d:'完全培養液，未接觸細胞。OD 代表培養液＋試劑的背景。'},
+ {k:'ctrl',n:'細胞對照組',no:1.5,col:'#5c4a53',d:'未處理的細胞，代表基礎 nitrite 量。'},
+ {k:'veh',n:'溶劑組',no:1.6,col:'#7a6a71',d:'與樣品組相同最終濃度的溶劑。'},
+ {k:'l05',n:'LPS 0.5 µg/mL',no:22,col:'#e48bb4',d:'LPS 低濃度組。'},
+ {k:'l1',n:'LPS 1 µg/mL',no:28,col:'#c2427f',d:'LPS 中濃度組，在本模擬中作為樣品組的刺激條件。'},
+ {k:'l5',n:'LPS 5 µg/mL',no:33,col:'#7d1a4c',d:'LPS 高濃度組。'},
+ {k:'dex',n:'Dex 10 µM + LPS',no:12,col:'#d07a14',d:'Positive control（抑制）。用來確認本次實驗能偵測到抑制。'},
+ {k:'que',n:'Quercetin 20 µM + LPS',no:14,col:'#c99a2e',d:'參考抑制劑（NF-κB／MAPK）。'},
+ {k:'nac',n:'NAC 10 mM + LPS',no:21,col:'#2f6fb5',d:'參考抑制劑（抗氧化、NF-κB）。須注意對 Griess 的干擾。'},
+ {k:'s1',n:'樣品 低 + LPS',no:24,col:'#7bd0a0',d:'待測萃取物低濃度。'},
+ {k:'s2',n:'樣品 中 + LPS',no:20,col:'#2fa36b',d:'待測萃取物中濃度。'},
+ {k:'s3',n:'樣品 高 + LPS',no:13,col:'#0f5c3b',d:'待測萃取物最高無毒濃度（MTT ≥ 90%）。'},
+ {k:'sOnly',n:'樣品 高（有細胞，無 LPS）',no:1.8,col:'#8a6fc4',d:'檢查樣品本身是否誘導 NO（例如內毒素污染）。'},
+ {k:'sBg',n:'樣品 高（無細胞）背景',no:0,bg:0.03,col:'#b39cf0',d:'檢查樣品顏色在 540 nm 的吸光，若有須從樣品組扣除。'},
+ {k:'spk',n:'NAC + 25 µM nitrite（無細胞）',no:25,col:'#6aa7ef',d:'添加回收試驗：若讀回明顯低於 25 µM，表示 NAC 干擾 Griess 反應。'}
+];
+const layout={}; // row index -> groups in cols 4-6,7-9,10-12
+const rowsG=[['blank','ctrl','veh'],['l05','l1','l5'],['dex','que','nac'],['s1','s2','s3'],['sOnly','sBg','spk']];
+const plate=$('#plate');const rowsL='ABCDEFGH';
+plate.innerHTML='<div class="lab"></div>'+Array.from({length:12},(_,i)=>`<div class="lab">${i+1}</div>`).join('');
+const r1=rng(7);
+for(let r=0;r<8;r++){const lab=document.createElement('div');lab.className='lab';lab.textContent=rowsL[r];plate.appendChild(lab);
+  for(let c=0;c<12;c++){const b=document.createElement('button');b.className='well';b.type='button';let info,od,ring='var(--line)';
+    if(c<3){od=BLANK+SLOPE*STD[r]+noise(r1,0.006);info={n:`標準品 ${STD[r]} µM`,d:`Nitrite 標準品，以完全培養液序列稀釋，三重複（第 1–3 欄）${C(1)}。`};ring='#555';}
+    else if(r<5){const g=GROUPS.find(x=>x.k===rowsG[r][Math.floor((c-3)/3)]);od=BLANK+SLOPE*g.no+(g.bg||0)+noise(r1,0.006);info=g;ring=g.col;}
+    else{od=null;info={n:'空孔',d:'可放更多樣品濃度或重複。'};}
+    if(od!==null){const a=Math.max(0,Math.min(1,(od-0.03)/0.55));b.style.background=`rgba(${css('--azo')},${(0.05+a*0.95).toFixed(2)})`;}
+    b.style.borderColor=ring;b.setAttribute('aria-label',`${rowsL[r]}${c+1} ${info.n}`);
+    b.onclick=()=>{$$('.well').forEach(w=>w.classList.remove('sel'));b.classList.add('sel');
+      $('#wellInfo').innerHTML=`<h3>${rowsL[r]}${c+1}：${info.n}</h3><p class="small">${info.d}</p>${od!==null?`<p class="small mono">模擬 OD₅₄₀ = ${od.toFixed(3)}</p>`:''}`};
+    plate.appendChild(b);}}
+$('#plateLegend').innerHTML='<span><i class="dot" style="border-color:#555"></i>標準品</span>'+GROUPS.map(g=>`<span><i class="dot" style="border-color:${g.col}"></i>${g.n}</span>`).join('');
+
+/* ---------- 08 standard curve ---------- */
+function defStd(){const r=rng(42);return STD.map(c=>[0,1,2].map(()=>+(BLANK+SLOPE*c+noise(r,0.005)).toFixed(3)))}
+let sd=defStd();
+function buildStd(){let h='<tr><th class="num">[NO₂⁻] µM</th><th class="num">重複 1</th><th class="num">重複 2</th><th class="num">重複 3</th><th class="num">平均</th><th class="num">SD</th></tr>';
+  STD.forEach((c,i)=>{h+=`<tr><td class="num">${c}</td>${sd[i].map((v,j)=>`<td class="num"><input type="number" step="0.001" value="${v}" data-i="${i}" data-j="${j}" aria-label="${c} µM 重複 ${j+1}"></td>`).join('')}<td class="num" id="m${i}"></td><td class="num" id="s${i}"></td></tr>`});
+  $('#stdTable').innerHTML=h;$$('#stdTable input').forEach(inp=>inp.addEventListener('input',()=>{sd[+inp.dataset.i][+inp.dataset.j]=parseFloat(inp.value)||0;calcStd()}));calcStd();}
+let fit={a:SLOPE,b:0,blank:BLANK};
+function calcStd(){const means=sd.map(r=>r.reduce((a,b)=>a+b,0)/3);const sds=sd.map((r,i)=>Math.sqrt(r.reduce((a,b)=>a+(b-means[i])**2,0)/2));
+  const blank=$('#stdBlank').checked?means[STD.length-1]:0;const y=means.map(m=>m-blank);
+  means.forEach((m,i)=>{$('#m'+i).textContent=(m-blank).toFixed(3);const cv=means[i]?sds[i]/means[i]*100:0;$('#s'+i).innerHTML=`<span class="${cv>10&&STD[i]>0?'bad':''}">${sds[i].toFixed(3)}</span>`});
+  const n=STD.length,mx=STD.reduce((a,b)=>a+b)/n,my=y.reduce((a,b)=>a+b)/n;let sxy=0,sxx=0,syy=0;STD.forEach((x,i)=>{sxy+=(x-mx)*(y[i]-my);sxx+=(x-mx)**2;syy+=(y[i]-my)**2});
+  const a=sxy/sxx,b=my-a*mx,r2=(sxy*sxy)/(sxx*syy);fit={a,b,blank};
+  $('#sA').textContent=a.toFixed(5);$('#sB').textContent=b.toFixed(4);$('#sR').innerHTML=`<span class="${r2>=0.99?'ok':'bad'}">${r2.toFixed(4)}</span>`;
+  drawStd(y,sd.map(r=>r.map(v=>v-blank)));calcUnk();}
+function calcUnk(){const od=parseFloat($('#unkOD').value),df=parseFloat($('#unkDF').value)||1;const odC=od-fit.blank;const c=(odC-fit.b)/fit.a;
+  const maxOD=sd[0].reduce((a,b)=>a+b)/3-fit.blank;let msg=`扣空白後 OD = ${odC.toFixed(3)} → <strong>${(c*df).toFixed(2)} µM</strong> nitrite（${c.toFixed(2)} µM × 稀釋 ${df} 倍）`;
+  if(odC>maxOD)msg+=`<br><span class="bad">超出最高標準品（100 µM）的 OD，請稀釋樣品後重測。</span>`;
+  else if(c<2.5)msg+=`<br><span class="bad">低於 Promega 在水中的偵測極限 2.5 µM，結果只能視為「低於偵測極限」。</span>`;
+  $('#unkOut').innerHTML=msg;}
+['unkOD','unkDF'].forEach(id=>$('#'+id).addEventListener('input',calcUnk));
+$('#stdBlank').addEventListener('change',calcStd);
+$('#stdDemo').onclick=()=>{sd=defStd();sd[2][1]=+(sd[2][1]+0.09).toFixed(3);buildStd();};
+$('#stdReset').onclick=()=>{sd=defStd();buildStd()};
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1;const w=cv.clientWidth||500,h=+cv.getAttribute('height');cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return{x,w,h}}
+function axes(x,w,h,pad,xmax,ymax,xl,yl,xt,yt){x.strokeStyle=css('--line');x.fillStyle=css('--muted');x.font='12px '+css('--mono');x.lineWidth=1;
+  for(let i=0;i<=5;i++){const yy=h-pad.b-(h-pad.t-pad.b)*i/5;x.beginPath();x.moveTo(pad.l,yy);x.lineTo(w-pad.r,yy);x.stroke();x.textAlign='right';x.fillText((ymax*i/5).toFixed(yt),pad.l-6,yy+4)}
+  for(let i=0;i<=5;i++){const xx=pad.l+(w-pad.l-pad.r)*i/5;x.textAlign='center';x.fillText((xmax*i/5).toFixed(xt),xx,h-pad.b+16)}
+  x.font='12px '+css('--body');x.textAlign='center';x.fillText(xl,(pad.l+w-pad.r)/2,h-4);x.save();x.translate(12,(pad.t+h-pad.b)/2);x.rotate(-Math.PI/2);x.fillText(yl,0,0);x.restore();}
+function drawStd(y,reps){const {x,w,h}=setupCanvas($('#stdCanvas'));x.clearRect(0,0,w,h);const pad={l:52,r:14,t:12,b:38};const ymax=Math.max(0.7,Math.ceil(Math.max(...reps.flat())*10)/10);
+  axes(x,w,h,pad,100,ymax,'nitrite (µM)','OD 540 nm',0,1);const X=v=>pad.l+(w-pad.l-pad.r)*v/100,Y=v=>h-pad.b-(h-pad.t-pad.b)*v/ymax;
+  x.strokeStyle=css('--accent');x.lineWidth=2;x.beginPath();x.moveTo(X(0),Y(fit.b));x.lineTo(X(100),Y(fit.b+fit.a*100));x.stroke();
+  x.fillStyle=css('--muted');reps.forEach((r,i)=>r.forEach(v=>{x.beginPath();x.arc(X(STD[i]),Y(v),2.5,0,7);x.fill()}));
+  x.fillStyle=css('--accent');y.forEach((v,i)=>{x.beginPath();x.arc(X(STD[i]),Y(v),5,0,7);x.fill()});}
+buildStd();
+
+/* ---------- 09 virtual reader ---------- */
+const EPS=38000, RAD=0.34; // cm
+function spec(l){return Math.exp(-((l-540)**2)/(2*32**2))+0.03}
+function vUpd(){const c=+$('#vC').value,L=+$('#vL').value,V=+$('#vV').value;$('#vCv').textContent=c+' µM';$('#vLv').textContent=L+' nm';$('#vVv').textContent=V+' µL';
+  const pl=(V/1000)/(Math.PI*RAD*RAD);const cf=c*1e-6*(50/150);const A=EPS*spec(L)/spec(540)*pl*cf+0.04;
+  $('#vPl').textContent=pl.toFixed(3)+' cm';$('#vA').textContent=A.toFixed(3);$('#vT').textContent=(100*Math.pow(10,-A)).toFixed(1)+'%';
+  let m=[];if(Math.abs(L-540)>20)m.push('偏離吸收峰，斜率變小，靈敏度下降。');if(V!==150)m.push('體積與標準品不同 → 光徑不同 → 不能直接用同一條標準曲線。');if(L<520||L>550)m.push('超出 Promega 建議的 520–550 nm。');
+  $('#vMsg').innerHTML=m.length?'<span class="bad">注意：</span>'+m.join(''):'<span class="ok">條件與 protocol 一致。</span>';
+  const {x,w,h}=setupCanvas($('#specCanvas'));x.clearRect(0,0,w,h);const pad={l:48,r:14,t:12,b:38};const ymax=Math.max(0.2,EPS*pl*cf*1.15+0.05);
+  x.strokeStyle=css('--line');x.fillStyle=css('--muted');x.font='12px '+css('--mono');
+  for(let i=0;i<=4;i++){const yy=h-pad.b-(h-pad.t-pad.b)*i/4;x.beginPath();x.moveTo(pad.l,yy);x.lineTo(w-pad.r,yy);x.stroke();x.textAlign='right';x.fillText((ymax*i/4).toFixed(2),pad.l-6,yy+4)}
+  [400,450,500,550,600,650,700].forEach(l=>{x.textAlign='center';x.fillText(l,pad.l+(w-pad.l-pad.r)*(l-400)/300,h-pad.b+16)});
+  x.font='12px '+css('--body');x.fillText('波長 (nm)',(pad.l+w-pad.r)/2,h-4);
+  const X=l=>pad.l+(w-pad.l-pad.r)*(l-400)/300,Y=v=>h-pad.b-(h-pad.t-pad.b)*v/ymax;
+  x.strokeStyle=css('--accent');x.lineWidth=2;x.beginPath();for(let l=400;l<=700;l+=2){const v=EPS*spec(l)/spec(540)*pl*cf+0.04;l===400?x.moveTo(X(l),Y(v)):x.lineTo(X(l),Y(v))}x.stroke();
+  x.strokeStyle=css('--no');x.setLineDash([4,4]);x.beginPath();x.moveTo(X(L),pad.t);x.lineTo(X(L),h-pad.b);x.stroke();x.setLineDash([]);
+  x.fillStyle=css('--no');x.beginPath();x.arc(X(L),Y(A),5,0,7);x.fill();}
+['vC','vL','vV'].forEach(id=>$('#'+id).addEventListener('input',vUpd));vUpd();
+
+/* ---------- 10 results ---------- */
+const RES=[
+ {k:'ctrl',n:'控制組',no:1.5,v:100},{k:'veh',n:'溶劑組',no:1.6,v:99},
+ {k:'l05',n:'LPS 0.5',no:22,v:97},{k:'l1',n:'LPS 1',no:28,v:96},{k:'l5',n:'LPS 5',no:33,v:92},
+ {k:'dex',n:'Dex + LPS',no:12,v:98},{k:'que',n:'Que + LPS',no:14,v:95},{k:'nac',n:'NAC + LPS',no:21,v:97},
+ {k:'s1',n:'樣品低 + LPS',no:24,v:98},{k:'s2',n:'樣品中 + LPS',no:20,v:96},{k:'s3',n:'樣品高 + LPS',no:13,v:93},
+ {k:'sOnly',n:'樣品高（無 LPS）',no:1.8,v:94}
+];
+function resUpd(){const tox=$('#scTox').checked,col=$('#scColor').checked,nac=$('#scNac').checked;
+  const rows=RES.map(r=>({...r}));const g=k=>rows.find(r=>r.k===k);
+  if(tox){g('s3').no=9;g('s3').v=58;}
+  if(nac){g('nac').no=14;}
+  const bgNo=col?0.03/SLOPE:0; // colour adds apparent nitrite
+  ['s1','s2','s3','sOnly'].forEach((k,i)=>{const f=[0.25,0.5,1,1][i];g(k).no+=bgNo*f;});
+  const L=g('l1').no,Cc=g('ctrl').no;
+  let h='<tr><th>組別</th><th class="num">OD₅₄₀</th><th class="num">NO₂⁻ µM</th><th class="num">% 抑制</th><th class="num">存活率</th><th>判讀</th></tr>';
+  rows.forEach(r=>{const od=BLANK+SLOPE*r.no;const inh=['dex','que','nac','s1','s2','s3'].includes(r.k)?((L-r.no)/(L-Cc)*100):null;let flag='';
+    if(r.v<90)flag='<span class="bad">存活率 &lt; 90%，抑制不可採信</span>';
+    else if(r.k==='nac'&&nac)flag='<span class="bad">抑制被高估（干擾）</span>';
+    else if(col&&['s1','s2','s3','sOnly'].includes(r.k))flag='<span class="bad">含樣品顏色，抑制被低估</span>';
+    else if(inh!==null)flag=inh>=50?'<span class="ok">明顯抑制</span>':inh>=20?'部分抑制':'抑制不明顯';
+    else if(r.k.startsWith('l'))flag=r.no>Cc*5?'<span class="ok">成功誘導</span>':'';
+    h+=`<tr><td>${r.n}</td><td class="num">${od.toFixed(3)}</td><td class="num">${r.no.toFixed(1)}</td><td class="num">${inh===null?'–':inh.toFixed(0)+'%'}</td><td class="num">${r.v}%</td><td class="small">${flag}</td></tr>`});
+  $('#resTable').innerHTML=h;
+  let m=[];if(tox)m.push('<strong>情境 A</strong>：樣品高濃度看似抑制最強，但存活率只有 58%，NO 下降主要來自細胞死亡。這就是為什麼要先用 MTT 決定最高無毒濃度。');
+  if(col)m.push('<strong>情境 B</strong>：樣品顏色在 540 nm 也有吸收，若不扣除「無細胞樣品背景」，nitrite 會被高估、抑制率被低估；連「樣品單獨」組都看起來像有 NO。');
+  if(nac)m.push('<strong>情境 C</strong>：mM 級 NAC 可能在酸性條件下與 sulfanilamide 競爭 nitrite，使讀值偏低、抑制被高估。以添加回收試驗確認：無細胞培養液 + NAC + 25 µM nitrite，若讀回明顯低於 25 µM 即表示有干擾。');
+  if(!m.length)m.push('目前為理想情境：LPS 劑量依賴誘導；Dex 有抑制，表示系統正常；樣品呈劑量依賴抑制，且存活率皆 ≥ 90%。');
+  $('#resMsg').innerHTML=m.map(s=>`<p style="margin-top:8px">${s}</p>`).join('');
+  const {x,w,h:H}=setupCanvas($('#resCanvas'));x.clearRect(0,0,w,H);const pad={l:44,r:10,t:12,b:86};const ymax=40;
+  x.strokeStyle=css('--line');x.fillStyle=css('--muted');x.font='12px '+css('--mono');
+  for(let i=0;i<=4;i++){const yy=H-pad.b-(H-pad.t-pad.b)*i/4;x.beginPath();x.moveTo(pad.l,yy);x.lineTo(w-pad.r,yy);x.stroke();x.textAlign='right';x.fillText(ymax*i/4,pad.l-6,yy+4)}
+  x.save();x.translate(12,(pad.t+H-pad.b)/2);x.rotate(-Math.PI/2);x.textAlign='center';x.font='12px '+css('--body');x.fillText('nitrite (µM)',0,0);x.restore();
+  const bw=(w-pad.l-pad.r)/rows.length;rows.forEach((r,i)=>{const gg=GROUPS.find(q=>q.k===r.k);const bh=(H-pad.t-pad.b)*Math.min(r.no,ymax)/ymax;
+    x.fillStyle=gg?gg.col:'#888';x.globalAlpha=r.v<90?0.35:1;x.fillRect(pad.l+i*bw+bw*0.18,H-pad.b-bh,bw*0.64,bh);x.globalAlpha=1;
+    if(r.v<90){x.fillStyle=css('--bad');x.font='bold 12px '+css('--body');x.textAlign='center';x.fillText('毒性',pad.l+i*bw+bw/2,H-pad.b-bh-6)}
+    x.save();x.translate(pad.l+i*bw+bw/2,H-pad.b+8);x.rotate(-Math.PI/3.2);x.textAlign='right';x.fillStyle=css('--ink');x.font='11px '+css('--body');x.fillText(r.n,0,0);x.restore();});}
+['scTox','scColor','scNac'].forEach(id=>$('#'+id).addEventListener('change',resUpd));resUpd();
+
+/* ---------- 11 quiz ---------- */
+const Q=[
+ {lv:'b',q:'Griess 法實際上量測的是什麼？',o:['NO 氣體','上清液中的 nitrite（NO₂⁻）','iNOS 蛋白','nitrate（NO₃⁻）'],a:1,e:`NO 在含氧水溶液中主要氧化成 nitrite${C(9)}，Griess 反應偵測 nitrite${C(1)}。`},
+ {lv:'b',q:'Sulfanilamide 與 NED 為什麼要依序加入？',o:['避免沉澱','兩者會競爭 nitrite，依序加入靈敏度較高','NED 需要先酸化','只是習慣'],a:1,e:`Promega 指出兩者競爭 nitrite，依序加入可達較高靈敏度${C(1)}。`},
+ {lv:'b',q:'標準曲線應該用什麼配製？',o:['超純水','PBS','與樣品相同的完全培養液','任何緩衝液皆可'],a:2,e:`靈敏度隨基質改變，須用與樣品相同的基質，且每次實驗都要做${C(1)}。`},
+ {lv:'b',q:'加完 NED 後，最晚應在多久內讀值？',o:['5 分鐘','30 分鐘','2 小時','隔天'],a:1,e:`須在 30 分鐘內讀值，之後顏色可能褪色${C(1)}。`},
+ {lv:'b',q:'Dexamethasone 在本實驗中扮演什麼角色？',o:['誘導 NO 的 positive control','抑制 NO 的 positive control','溶劑對照','空白'],a:1,e:'Dex 是已知能抑制 iNOS 誘導的藥物，用來確認系統能偵測到抑制。'},
+ {lv:'b',q:'樣品組 NO 比 LPS 組低 60%，但同濃度 MTT 存活率只有 55%。最合理的結論是？',o:['樣品有強抗發炎活性','結果不能解釋為抗發炎，NO 下降可能來自細胞死亡','LPS 失效','標準曲線錯誤'],a:1,e:'這正是為什麼要先決定最高無毒濃度（MTT ≥ 90%）。'},
+ {lv:'b',q:'標準曲線 OD = 0.0052 × [NO₂⁻] + 0.002（已扣空白）。樣品扣空白後 OD = 0.158，樣品曾稀釋 2 倍。原樣品 nitrite 約為？',o:['15 µM','30 µM','60 µM','0.3 µM'],a:2,e:'樣品扣空白後的 OD 對應稀釋後濃度：(0.158 − 0.002) / 0.0052 = 30 µM；原樣品再乘稀釋倍數 2，得 <strong>60 µM</strong>。'},
+ {lv:'a',q:'在 STAT1 缺失的巨噬細胞中以 LPS 刺激，預期 iNOS mRNA 會？',o:['不受影響','明顯減少','增加','只有 TNF-α 減少'],a:1,e:`STAT1 缺失時 LPS 誘導的 iNOS mRNA 嚴重受損，TNF-α mRNA 則不受影響${C(5)}。`},
+ {lv:'a',q:'外加 IFN-β 對 RAW 264.7 中 LPS 誘導 iNOS 的影響是？',o:['阻斷','加速誘導','沒有影響','只影響 COX-2'],a:1,e:`外加 IFN-β 加速 iNOS 誘導，在轉錄、蛋白與 NO 生成層次皆可見${C(4)}。`},
+ {lv:'a',q:'為什麼 Dexamethasone 要在 LPS 之前或同時給予？',o:['Dex 會分解','Dex 抑制 iNOS 的誘導，對已誘導出來的酵素活性無效','Dex 會與 LPS 結合','Dex 需要 24 小時才能溶解'],a:1,e:`Dex 不影響已誘導出的酵素釋放 NO${C(15)}；在 J774 中它使 iNOS mRNA 不穩定${C(14)}。`},
+ {lv:'a',q:'在 NO 實驗中使用 10 mM NAC，最需要額外做哪個對照？',o:['更高濃度 LPS','無細胞培養液 + NAC + 已知 nitrite 的添加回收試驗','不加 Griess 試劑','換成 ROS 染劑'],a:1,e:`mM 級硫醇可能在酸性條件下與 sulfanilamide 競爭 nitrite，干擾 Griess 反應${C(26)}。`},
+ {lv:'a',q:'在微孔盤讀取儀中，若標準品每孔 150 µL、樣品孔誤加成 200 µL，會發生什麼？',o:['沒有影響','樣品光徑較長，OD 偏高，換算濃度高估','樣品 OD 偏低','只影響 900 nm'],a:1,e:`微孔盤光徑垂直，隨孔內體積改變${C(32)}。在 Beer–Lambert 定律中 A 與 l 成正比。`}
+];
+let score=0,answered=0;
+$('#quizBox').innerHTML=Q.map((q,i)=>`<div class="q" id="q${i}"><div class="qh"><span class="qn">Q${i+1}</span><span class="lv ${q.lv}">${q.lv==='b'?'基本':'進階'}</span><strong>${q.q}</strong></div><div class="opts">${q.o.map((o,j)=>`<button class="opt" data-q="${i}" data-o="${j}">${String.fromCharCode(65+j)}. ${o}</button>`).join('')}</div><div class="fb"></div></div>`).join('');
+$$('.opt').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.q,j=+b.dataset.o,box=$('#q'+i);if(box.classList.contains('done'))return;box.classList.add('done');answered++;
+  const ok=j===Q[i].a;if(ok)score++;box.querySelectorAll('.opt').forEach((o,k)=>{if(k===Q[i].a)o.classList.add('right');else if(k===j)o.classList.add('wrong')});
+  box.querySelector('.fb').innerHTML=`<span class="${ok?'ok':'bad'}">${ok?'答對了。':'再想想。'}</span> ${Q[i].e}`;$('#score').textContent=`得分 ${score} / ${answered}（共 ${Q.length} 題）`;}));
+$('#score').textContent=`得分 0 / 0（共 ${Q.length} 題）`;
+
+/* ---------- 12 glossary ---------- */
+const G=[
+ ['AP-1','Activator protein 1','活化蛋白-1'],['Arg','Arginase','精胺酸酶'],['BH4','Tetrahydrobiopterin','四氫生物蝶呤'],['CaM','Calmodulin','攜鈣素'],
+ ['CD14','Cluster of differentiation 14','CD14 分化抗原'],['cGMP','Cyclic guanosine monophosphate','環鳥苷單磷酸'],['COX-2','Cyclooxygenase-2','環氧合酶-2'],
+ ['Dex','Dexamethasone','地塞米松'],['FAD','Flavin adenine dinucleotide','黃素腺嘌呤二核苷酸'],['FMN','Flavin mononucleotide','黃素單核苷酸'],
+ ['IC₅₀','Half-maximal inhibitory concentration','半數抑制濃度'],['IFN-β','Interferon-beta','β型干擾素'],['IFN-γ','Interferon-gamma','γ型干擾素'],['IFNAR','Type I interferon receptor','第一型干擾素受體'],
+ ['IKK','IκB kinase','IκB 激酶'],['IκBα','Inhibitor of κB alpha','κB 抑制蛋白 α'],['iNOS','Inducible nitric oxide synthase (NOS2)','誘導型一氧化氮合成酶'],
+ ['IRF1','Interferon regulatory factor 1','干擾素調節因子 1'],['IRF3','Interferon regulatory factor 3','干擾素調節因子 3'],['JAK','Janus kinase','Janus 激酶'],
+ ['L-NAME','Nω-nitro-L-arginine methyl ester','Nω-硝基-L-精胺酸甲酯'],['L-NIL','N6-(1-iminoethyl)-L-lysine','N6-(1-亞胺乙基)-L-離胺酸'],
+ ['LBP','LPS-binding protein','脂多醣結合蛋白'],['LPS','Lipopolysaccharide','脂多醣'],['MAPK','Mitogen-activated protein kinase','絲裂原活化蛋白激酶'],
+ ['MD-2','Myeloid differentiation factor 2','骨髓分化因子 2'],['MTT','3-(4,5-Dimethylthiazol-2-yl)-2,5-diphenyltetrazolium bromide','MTT 四唑鹽（細胞存活率試驗）'],
+ ['MyD88','Myeloid differentiation primary response 88','骨髓分化初級反應蛋白 88'],['NAC','N-acetyl-L-cysteine','N-乙醯半胱胺酸'],
+ ['NADPH','Nicotinamide adenine dinucleotide phosphate (reduced)','還原型菸鹼醯胺腺嘌呤二核苷酸磷酸'],['NED','N-1-naphthylethylenediamine dihydrochloride','N-1-萘基乙二胺二鹽酸鹽'],
+ ['NF-κB','Nuclear factor kappa B','核因子 κB'],['NO','Nitric oxide','一氧化氮'],['NO₂⁻','Nitrite','亞硝酸根'],['NO₃⁻','Nitrate','硝酸根'],
+ ['NOS','Nitric oxide synthase','一氧化氮合成酶'],['OD','Optical density (absorbance)','光密度（吸光值）'],['ONOO⁻','Peroxynitrite','過氧亞硝酸根'],
+ ['O₂•⁻','Superoxide anion','超氧陰離子'],['PDTC','Pyrrolidine dithiocarbamate','吡咯烷二硫代胺基甲酸鹽'],['PKG','cGMP-dependent protein kinase','cGMP 依賴性蛋白激酶'],
+ ['R²','Coefficient of determination','決定係數'],['RNS','Reactive nitrogen species','活性氮物質'],['ROS','Reactive oxygen species','活性氧物質'],
+ ['sGC','Soluble guanylate cyclase','可溶性鳥苷酸環化酶'],['SNO','S-nitrosothiol','S-亞硝基硫醇'],['STAT1','Signal transducer and activator of transcription 1','訊息傳遞與轉錄活化因子 1'],
+ ['TAK1','TGF-β-activated kinase 1','TGF-β 活化激酶 1'],['TBK1','TANK-binding kinase 1','TANK 結合激酶 1'],['TLR4','Toll-like receptor 4','類鐸受體 4'],
+ ['TNF-α','Tumor necrosis factor-alpha','腫瘤壞死因子-α'],['TRAF6','TNF receptor-associated factor 6','TNF 受體相關因子 6'],['TRAM','TRIF-related adaptor molecule','TRIF 相關接合分子'],
+ ['TRIF','TIR-domain-containing adapter-inducing interferon-β','含 TIR 結構域誘導 β 干擾素接合蛋白']
+];
+const key=s=>s.replace(/[^A-Za-z0-9]/g,'').toLowerCase();
+G.sort((a,b)=>key(a[0]).localeCompare(key(b[0]),'en'));
+function glos(){const q=$('#glosQ').value.trim().toLowerCase();const rows=G.filter(r=>!q||r.join(' ').toLowerCase().includes(q));
+  $('#glosTable tbody').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');$('#glosN').textContent=`${rows.length} / ${G.length} 筆`;}
+$('#glosQ').addEventListener('input',glos);glos();
+
+/* comma only between directly adjacent citations */
+const joinCites=()=>$$('.cite').forEach(a=>{const p=a.previousSibling;if(p&&p.nodeType===1&&p.classList.contains('cite'))a.classList.add('join')});
+joinCites();new MutationObserver(joinCites).observe(document.querySelector('main'),{childList:true,subtree:true});
+
+/* redraw canvases on resize / theme change */
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{calcStd();vUpd();resUpd()},150)});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{calcStd();vUpd();resUpd()});
+})();
+</script>
+<script>
+/* lab-print-style-v2 — 列印時展開所有摺疊問答，列印後還原 */
+(function(){
+  function all(){ return document.querySelectorAll("details"); }
+  window.addEventListener("beforeprint",function(){
+    all().forEach(function(d){ d.dataset.pwOpen = d.open ? "1" : "0"; d.open = true; });
+  });
+  window.addEventListener("afterprint",function(){
+    all().forEach(function(d){ d.open = d.dataset.pwOpen === "1"; delete d.dataset.pwOpen; });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>β-Hexosaminidase 脫顆粒實驗模擬</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a lab notebook — narrow reading column for principle, wide "bench" with plate + step console; accent = p-nitrophenolate yellow */
+:root{
+  --ink:#16323a;
+  --ink-soft:#4a626a;
+  --paper:#f4f7f6;
+  --surface:#ffffff;
+  --line:#d3dedc;
+  --teal:#1e6e78;
+  --yellow:#f2c230;
+  --yellow-deep:#b98a00;
+  --good:#2f8a4e;
+  --bad:#b8423a;
+  --well-empty:#e9efee;
+  --cell:#c9a7c9;
+  --font-display:"Noto Serif TC","Songti TC",serif;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#e2ecea;--ink-soft:#9fb4b1;--paper:#0f1a1d;--surface:#16252a;--line:#2a3d42;
+    --teal:#5fb7c1;--yellow:#f5cd4a;--yellow-deep:#f5cd4a;--good:#5ec27f;--bad:#e2756c;
+    --well-empty:#22353a;--cell:#8f6f93;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e2ecea;--ink-soft:#9fb4b1;--paper:#0f1a1d;--surface:#16252a;--line:#2a3d42;
+  --teal:#5fb7c1;--yellow:#f5cd4a;--yellow-deep:#f5cd4a;--good:#5ec27f;--bad:#e2756c;
+  --well-empty:#22353a;--cell:#8f6f93;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.75}
+a{color:var(--teal)}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;line-height:1.35;margin:0}
+h1{font-size:clamp(1.6rem,3.2vw,2.2rem)}
+h2{font-size:1.5rem}
+h3{font-size:1.1rem}
+p{margin:0}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+header.top{padding:28px 20px 18px;border-bottom:1px solid var(--line);background:var(--surface)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.lede{max-width:68ch;color:var(--ink-soft);margin-top:8px}
+nav.tabs{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+nav.tabs .wrap{display:flex;gap:4px;overflow-x:auto}
+nav.tabs a{padding:12px 14px;text-decoration:none;color:var(--ink-soft);border-bottom:3px solid transparent;white-space:nowrap;font-weight:500}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--yellow)}
+main section{display:none;padding:28px 0 60px}
+main section.active{display:block}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.reading{max-width:68ch}
+.eyebrow{font-size:.8rem;letter-spacing:.08em;color:var(--teal);font-weight:700}
+.note{font-size:.88rem;color:var(--ink-soft)}
+.cite{font-size:.78rem;color:var(--ink-soft);vertical-align:super}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px}
+button.primary{background:var(--teal);color:var(--surface);border-color:var(--teal);font-weight:600}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type=range]{width:100%;accent-color:var(--teal)}
+input[type=number]{font:inherit;font-family:var(--font-mono);width:6.5em;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
+.eq{font-family:var(--font-mono);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 14px;overflow-x:auto;font-size:.92rem}
+svg text{fill:var(--ink);font-family:var(--font-body)}
+/* bench */
+.bench{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.bench{grid-template-columns:1fr}}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;counter-reset:s}
+.steps li{display:flex;gap:10px;align-items:baseline;padding:4px 8px;border-radius:6px;color:var(--ink-soft);font-size:.92rem}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--font-mono);min-width:1.6em;text-align:right}
+.steps li.done{color:var(--ink)}
+.steps li.done::after{content:"✓";color:var(--good);margin-left:auto}
+.steps li.now{background:var(--paper);color:var(--ink);font-weight:700;border-left:3px solid var(--yellow)}
+.plate{display:grid;gap:6px;padding:12px;border-radius:12px;background:var(--paper);border:1px solid var(--line)}
+.plate .lab{font-size:.75rem;color:var(--ink-soft);text-align:center;align-self:center}
+.well{aspect-ratio:1;border-radius:50%;background:var(--well-empty);border:2px solid var(--line);position:relative;transition:background .9s,box-shadow .9s}
+.well.cells::after{content:"";position:absolute;inset:22%;border-radius:50%;background:radial-gradient(circle,var(--cell) 0 30%,transparent 32%) 0 0/8px 8px;opacity:.9}
+.well.ige{border-color:var(--teal)}
+.plates3{display:grid;grid-template-columns:1fr;gap:14px}
+.platehead{display:flex;justify-content:space-between;align-items:baseline;font-size:.9rem;font-weight:600}
+.choice{display:flex;flex-direction:column;gap:8px}
+.choice button{text-align:left}
+.feedback{border-radius:8px;padding:10px 12px;font-size:.92rem}
+.feedback.ok{background:color-mix(in srgb,var(--good) 14%,transparent);border:1px solid var(--good)}
+.feedback.no{background:color-mix(in srgb,var(--bad) 12%,transparent);border:1px solid var(--bad)}
+.timer{height:8px;background:var(--well-empty);border-radius:4px;overflow:hidden}
+.timer > div{height:100%;width:0;background:var(--yellow)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--ink-soft)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;background:var(--c)}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left}
+td.num,th.num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+.pill{display:inline-block;font-size:.75rem;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft)}
+.sim-tag{display:inline-block;font-size:.78rem;font-weight:700;padding:2px 8px;border-radius:4px;background:color-mix(in srgb,var(--yellow) 30%,transparent);color:var(--ink)}
+ol.refs{padding-left:1.3em;display:flex;flex-direction:column;gap:8px;font-size:.92rem}
+.qa{display:flex;flex-direction:column;gap:12px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
+details summary{cursor:pointer;font-weight:600}
+details p{margin-top:8px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ===== lab-print-style-v2 — 列印（Cmd-P）專用，自動注入 ===== */
+/* 同時相容兩種版型：分頁式（nav.tabs + 隱藏 section）與側欄式（nav.side + .shell） */
+@media print{
+  :root{--ink:#000;--ink-soft:#3a3a3a;--muted:#3a3a3a;--bg:#fff;--paper:#fff;
+        --surface:#fff;--surface2:#f2f2f2;--line:#bbb;color-scheme:light}
+  @page{margin:15mm 13mm}
+  body{font-size:10.5pt;background:#fff}
+  /* 版面攤平 */
+  .shell{display:block!important}
+  main{padding:0!important;gap:0!important;display:block!important}
+  nav,nav.side,nav.tabs{display:none!important}
+  header.top,header.hero{border-bottom:2px solid #000;padding:0 0 10px;margin-bottom:10px}
+  /* 分頁式：讓被隱藏的 section 全部顯示 */
+  main section{display:block!important;break-before:page;padding:0 0 8px}
+  main section:first-of-type{break-before:auto}
+  section.unit{break-before:page}
+  section.unit:first-of-type{break-before:auto}
+  h2{margin-top:12px}
+  .unit-head{border-bottom:2px solid #000}
+  /* 隱藏互動控制項，但保留測驗選項與內容 */
+  .controls,.seg,.btn,.scorebar,.glos-tools,.timer,.choice,
+  #console,#regen,#checkAns,#showAns,#qReset,
+  input[type=range],input[type=number],input[type=search],input[type=text],select
+    {display:none!important}
+  .opt,.q .opt{display:block!important;border:1px solid #999!important;background:#fff!important}
+  /* 區塊不被切斷 */
+  .card,.stat,.note,.q,.step,details{break-inside:avoid}
+  details summary{list-style:none;font-weight:700}
+  canvas,svg,table,.plate,.well,.eq,.formula{break-inside:avoid;max-width:100%}
+  tr{break-inside:avoid}
+  .sim-tag,.pill,.badge,.lv{border:1px solid #999}
+  /* 連結：本文不印網址，參考文獻才印 */
+  a{color:#000;text-decoration:none}
+  .refs a[href^="http"]::after,ol.refs a[href^="http"]::after
+    {content:" (" attr(href) ")";font-size:.72em;color:#444;word-break:break-all}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="eyebrow">碩一實驗課・互動講義</div>
+    <h1>以 β-hexosaminidase 活性測量肥大細胞脫顆粒</h1>
+    <p class="lede">細胞株：RBL-2H3（大鼠嗜鹼性白血病細胞，常用的肥大細胞模型）。受質：p-NAG（p-nitrophenyl N-acetyl-β-D-glucosaminide）。先理解原理，再到「虛擬實驗台」逐步做決定，最後用模擬數據計算 % release。</p>
+  </div>
+</header>
+<nav class="tabs" aria-label="章節">
+  <div class="wrap">
+    <a href="#principle">1 原理</a>
+    <a href="#bench">2 虛擬實驗台</a>
+    <a href="#analysis">3 數據分析</a>
+    <a href="#tips">4 注意事項</a>
+    <a href="#refs">5 參考文獻</a>
+  </div>
+</nav>
+
+<main class="wrap">
+<!-- ================= 1. PRINCIPLE ================= -->
+<section id="principle">
+  <div class="stack">
+    <div class="reading stack">
+      <h2>為什麼量 β-hexosaminidase 就能代表脫顆粒？</h2>
+      <p>肥大細胞的分泌顆粒中儲存了組織胺等介質，也含有溶酶體酵素 β-hexosaminidase。細胞活化時兩者一起被釋放，因此可用上清液中的 β-hexosaminidase 活性作為脫顆粒（degranulation）的指標。<span class="cite">[1][3]</span> 這個酵素可用呈色受質在 96 孔盤中定量，操作比直接測組織胺簡便。</p>
+      <p>典型的 IgE 依賴型活化模型：RBL-2H3 細胞先以 anti-DNP IgE 致敏，IgE 結合在細胞表面的高親和力受體 FcεRI；再加入多價抗原 DNP-BSA（或 DNP-HSA），使 IgE–FcεRI 複合物交聯聚集，啟動訊息傳遞，最後導致顆粒胞吐。<span class="cite">[4]</span></p>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="eyebrow">互動 1・FcεRI 交聯與脫顆粒</div>
+        <svg id="cellsvg" viewBox="0 0 360 260" role="img" aria-label="肥大細胞示意圖">
+          <ellipse cx="180" cy="135" rx="120" ry="95" fill="none" stroke="var(--teal)" stroke-width="3"/>
+          <ellipse cx="180" cy="140" rx="34" ry="26" fill="color-mix(in srgb,var(--teal) 18%,transparent)" stroke="var(--teal)"/>
+          <text x="180" y="145" text-anchor="middle" font-size="12">細胞核</text>
+          <g id="receptors"></g>
+          <g id="granules"></g>
+          <g id="antigens"></g>
+          <text id="cellmsg" x="180" y="252" text-anchor="middle" font-size="13"></text>
+        </svg>
+        <div class="row">
+          <button id="btnIgE">① 加入 anti-DNP IgE（致敏）</button>
+          <button id="btnAg">② 加入 DNP-BSA（抗原）</button>
+          <button id="btnReset">重設</button>
+        </div>
+        <p class="note">試試看：不先加 IgE 就直接加抗原，會發生什麼事？示意圖僅表達概念，並非真實比例。</p>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">互動 2・呈色反應與 pH</div>
+        <div class="eq">p-NAG ──(β-hexosaminidase, pH 4.5, 37 °C)──▶ p-nitrophenol + N-acetyl-glucosamine</div>
+        <p>酵素在酸性檸檬酸緩衝液（pH 4.5）中作用。<span class="cite">[3][5]</span> 產物 p-nitrophenol 在酸性下幾乎無色，加入鹼性終止液後轉成黃色的 p-nitrophenolate，可在 405 nm 讀吸光值。<span class="cite">[2][5]</span></p>
+        <label for="phSlider">拖曳調整 pH：<b id="phVal" class="mono">4.5</b></label>
+        <input type="range" id="phSlider" min="3" max="11" step="0.1" value="4.5">
+        <div class="row" style="align-items:center">
+          <div id="phWell" class="well" style="width:72px;flex:none"></div>
+          <div class="stack" style="gap:2px">
+            <div>呈黃色的 phenolate 比例：<b id="phFrac" class="mono">—</b></div>
+            <div class="note">依 Henderson–Hasselbalch 計算，p-nitrophenol 的 pKa 約 7.15。</div>
+          </div>
+        </div>
+        <p class="note">所以終止液同時做兩件事：把 pH 拉高使酸性酵素停止作用，並讓產物完全離子化、黃色最大化。</p>
+      </div>
+    </div>
+
+    <div class="card reading">
+      <div class="eyebrow">核心計算</div>
+      <p>同一孔細胞分成兩部分：<b>上清液</b>（已釋放的酵素，S）與<b>裂解液</b>（仍留在細胞內的酵素，L，以 Triton X-100 破膜取得）。兩者都扣掉空白（blank），在上清與裂解液總體積相同、各取等量反應的前提下：</p>
+      <div class="eq">% release = (S − blank) ÷ [(S − blank) + (L − blank)] × 100</div>
+      <p class="note">這是文獻常見的寫法。<span class="cite">[5][6]</span> 若上清與裂解液的總體積或取樣量不同，必須先換算成「每孔總活性」再相加（見第 3 節）。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2. BENCH ================= -->
+<section id="bench">
+  <div class="stack">
+    <div class="reading stack">
+      <h2>虛擬實驗台</h2>
+      <p>每一步先回答一個操作決策，答對才會執行。濃度與時間取自文獻中常見條件（見各步驟標註），實際操作請以你們實驗室的 SOP 為準。</p>
+    </div>
+    <div class="bench">
+      <div class="stack">
+        <div class="card">
+          <div class="platehead"><span>細胞培養盤（96 孔盤局部）</span><span class="pill" id="clock">Day 1</span></div>
+          <div id="cellPlate" class="plate"></div>
+          <div class="legend">
+            <span style="--c:var(--cell)">有細胞</span>
+            <span style="--c:var(--teal)">已 IgE 致敏（外框）</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="platehead"><span>反應盤：上清 S ／ 裂解液 L ／ blank</span><span class="pill" id="rxStatus">尚未開始</span></div>
+          <div id="rxPlate" class="plate"></div>
+          <p class="note">列 S 與 L 對應上方同一行的細胞；最右一行為只加緩衝液與受質的 blank。</p>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <div class="eyebrow">流程</div>
+          <ol class="steps" id="stepList"></ol>
+        </div>
+        <div class="card" id="console" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. ANALYSIS ================= -->
+<section id="analysis">
+  <div class="stack">
+    <div class="reading stack">
+      <h2>數據分析</h2>
+      <p><span class="sim-tag">模擬數據</span> 下表 OD405 由程式隨機產生，用來練習計算，<b>不代表</b>任何真實實驗結果或預期數值。每次按「重新產生」數字都會不同。</p>
+      <p>本模擬設定：刺激體積與裂解液體積相同，S 與 L 各取相同體積加入 p-NAG，因此可直接套用 S ÷ (S + L)。</p>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="eyebrow">OD405 讀值（三重複）</div>
+        <button id="regen">重新產生一組模擬數據</button>
+      </div>
+      <div class="tablewrap"><table id="odTable"></table></div>
+      <p class="note">Blank OD405：<b class="mono" id="blankVal"></b>（緩衝液 + p-NAG + 終止液，無樣品）</p>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="eyebrow">換你算：各組平均 % release</div>
+        <p class="note">先求三重複的平均 S 與 L，各自扣 blank，再代公式。答案容許 ±1.0 個百分點。</p>
+        <div id="answerBox" class="stack" style="gap:10px"></div>
+        <div class="row"><button class="primary" id="checkAns">檢查答案</button><button id="showAns">顯示解答</button></div>
+        <div id="ansFeedback"></div>
+      </div>
+      <div class="card">
+        <div class="eyebrow">結果圖</div>
+        <svg id="bar" viewBox="0 0 360 240" role="img" aria-label="% release 長條圖"></svg>
+        <p class="note">檢查答案後顯示。抑制率可再計算為：(1 − 處理組淨釋放 ÷ 刺激組淨釋放) × 100，其中淨釋放 = 該組 % release − 自發釋放 % release。</p>
+      </div>
+    </div>
+    <div class="card reading">
+      <div class="eyebrow">進階：體積不相等時怎麼辦？</div>
+      <p>% release 的本意是「釋放到胞外的酵素 ÷ 每孔酵素總量」。若上清總體積為 V<sub>S</sub>、取 v<sub>S</sub> 反應；裂解液總體積為 V<sub>L</sub>、取 v<sub>L</sub> 反應，則：</p>
+      <div class="eq">S_total = (S − blank) × V_S / v_S<br>L_total = (L − blank) × V_L / v_L<br>% release = S_total ÷ (S_total + L_total) × 100</div>
+      <p class="note">例如 Kuehn 等人的流程中，上清取出一部分後，剩餘上清與細胞一起裂解，因此公式中帶有體積換算係數。<span class="cite">[1]</span> 使用別人的公式前，先確認它對應的取樣方式。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 4. TIPS ================= -->
+<section id="tips">
+  <div class="stack reading">
+    <h2>注意事項與思考題</h2>
+    <div class="qa">
+      <details open><summary>為什麼需要「自發釋放」組（有 IgE、不加抗原）？</summary>
+        <p>細胞在操作過程（換液、溫度變化）中本身就會漏出一些酵素。沒有這組，就無法判斷抗原刺激造成的釋放有多少是真正的活化。</p></details>
+      <details><summary>為什麼刺激用的緩衝液必須含 Ca²⁺？</summary>
+        <p>FcεRI 交聯後的脫顆粒需要胞外 Ca²⁺ 流入。文獻所用的 Tyrode's/HEPES 緩衝液都含 CaCl₂ 與 MgCl₂（或 MgSO₄）、葡萄糖與 BSA。<span class="cite">[1][4]</span> 若改用不含 Ca²⁺ 的 PBS，抗原刺激的反應會明顯變差，這也可以當作一個對照實驗來設計。</p></details>
+      <details><summary>為什麼刺激結束要放冰上？</summary>
+        <p>低溫可迅速停止胞吐，讓所有孔的刺激時間一致。<span class="cite">[1][3]</span></p></details>
+      <details><summary>收上清時要注意什麼？</summary>
+        <p>不要吸到細胞。RBL-2H3 是貼附型細胞，但抗原刺激後細胞會改變形態，操作仍需輕柔；若帶到細胞，上清的活性會被高估。在強烈活化或測試物質具微毒性時，細胞會變圓且貼附力大幅下降，實務上可在冰上終止刺激後，將 96 孔盤低速短暫離心（例如 200–300 × g、5 分鐘、4 °C），再輕柔收取上清液。懸浮型肥大細胞（BMMC、LAD2 等）需要先離心，再從孔的一側吸取無細胞的上清。<span class="cite">[1]</span></p></details>
+      <details><summary>OD 值太高怎麼辦？</summary>
+        <p>超出讀盤機線性範圍時，應稀釋樣品後重測，或縮短受質反應時間。<span class="cite">[3]</span> 也可利用 620–630 nm 作為參考波長扣除背景。<span class="cite">[1][3]</span></p></details>
+      <details><summary>測試藥物（抑制劑）時還要做什麼？</summary>
+        <p>需要確認藥物在測試濃度下不具細胞毒性（例如 MTT 試驗），否則 % release 下降可能只是細胞死亡或數量減少造成的。<span class="cite">[7]</span> 另外也要確認藥物本身不會直接抑制 β-hexosaminidase 的酵素活性，或干擾 405 nm 讀值。若測試物質本身有顏色，需另外設立含有該物質但不含細胞的 Blank 孔（或直接測定該藥物在 405 nm 的背景值）來扣除光學干擾。</p></details>
+      <details><summary>不同文獻條件不一樣，正常嗎？</summary>
+        <p>正常。IgE 濃度（例如 50 ng/mL 到 0.4 μg/mL）、致敏時間、抗原濃度與刺激時間（15–30 分鐘）、受質反應時間（60–90 分鐘）、終止液種類（碳酸鹽緩衝液 pH 10.5 或 glycine pH 10.7）在文獻中都有差異。<span class="cite">[1][4][5][7][8]</span> 重點是同一次實驗內條件一致，並且有完整的對照組。</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 5. REFS ================= -->
+<section id="refs">
+  <div class="stack reading">
+    <h2>參考文獻</h2>
+    <p class="note">本講義的實驗條件與原理整理自下列來源；頁面中的 OD 數值為程式模擬，非出自任何文獻。</p>
+    <ol class="refs">
+      <li>Kuehn HS, Radinger M, Gilfillan AM. Measuring mast cell mediator release. <i>Curr Protoc Immunol</i>. 2010; Unit 7.38. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2982193/">PMC2982193</a></li>
+      <li>Tsvilovskyy V, et al. Isolation of peritoneum-derived mast cells and their functional characterization with Ca²⁺-imaging and degranulation assays. <i>J Vis Exp</i>. 2018;(137):57222. <a href="https://doi.org/10.3791/57222">doi:10.3791/57222</a></li>
+      <li>JoVE Encyclopedia of Experiments: Mast cell degranulation assay to study the effect of a target chemical. <a href="https://app.jove.com/v/21536/mast-cell-degranulation-assay-to-study-the-effect-of-a-target-chemical">JoVE 21536</a></li>
+      <li>US Patent 7,192,752 及同系列 US 9,625,472. Real time electronic cell sensing systems and applications for cell-based assays（RBL-2H3、Tyrode buffer 組成、0.5% Triton X-100 裂解、glycine pH 10.7 終止液、DNP-BSA 100 ng/mL）。<a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/7192752">USPTO 7,192,752</a>、<a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/9625472">USPTO 9,625,472</a></li>
+      <li>US Patent 8,546,403. Compounds that modulate intracellular calcium（RBL-2H3；1 mM p-NAG 於 0.05 M 檸檬酸鈉 pH 4.5、37 °C 60 分鐘；碳酸鹽緩衝液 pH 10.5 終止；405 nm；% release 公式）。<a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/8546403">USPTO</a></li>
+      <li>US Patent 8,093,301. Anti-allergic agent（RBL-2H3；DNP-BSA 刺激；0.1% 界面活性劑裂解；% release = 上清 ÷ (上清 + 裂解液)）。<a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/8093301">USPTO</a></li>
+      <li>Tyrosol and mast cell degranulation, <i>PLoS One</i>. 2015;10(6):e0129829（RBL-2H3 anti-DNP IgE 50 ng/mL 致敏過夜、DNP-HSA 100 ng/mL；MTT 細胞存活）。<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4465982/">PMC4465982</a></li>
+      <li>US Patent 8,980,844. Peptide having antibacterial or anti-inflammatory activity（RBL-2H3 5×10⁴ cells/well；受質 1 mM p-NAG 於 0.2 M citrate pH 4.5）。<a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/8980844">USPTO</a></li>
+    </ol>
+  </div>
+</section>
+</main>
+
+<script>
+(function(){
+/* ---------- tabs via hash ---------- */
+const ids=["principle","bench","analysis","tips","refs"];
+function route(){
+  let h=(location.hash||"#principle").slice(1); if(!ids.includes(h)) h="principle";
+  ids.forEach(i=>document.getElementById(i).classList.toggle("active",i===h));
+  document.querySelectorAll("nav.tabs a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+h?"page":"false"));
+}
+window.addEventListener("hashchange",route); route();
+
+/* ---------- interactive 1: cell ---------- */
+const NS="http://www.w3.org/2000/svg";
+const rec=document.getElementById("receptors"),gran=document.getElementById("granules"),ag=document.getElementById("antigens"),msg=document.getElementById("cellmsg");
+let hasIgE=false,released=false;
+const grPos=[[110,95],[140,75],[230,80],[255,120],[245,170],[200,195],[150,190],[115,165],[95,130],[175,95],[215,140],[140,140]];
+const recAngles=[-150,-120,-90,-60,-30,0,30,150,180,210];
+function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e}
+function drawCell(){
+  rec.innerHTML="";gran.innerHTML="";ag.innerHTML="";
+  recAngles.forEach(d=>{const r=d*Math.PI/180,x=180+120*Math.cos(r),y=135+95*Math.sin(r);
+    const g=el("g",{transform:`translate(${x},${y}) rotate(${d+90})`});
+    g.appendChild(el("line",{x1:0,y1:0,x2:0,y2:-10,stroke:"var(--ink-soft)","stroke-width":3}));
+    if(hasIgE){g.appendChild(el("path",{d:"M0,-10 L-7,-20 M0,-10 L7,-20",stroke:"var(--teal)","stroke-width":3,fill:"none","stroke-linecap":"round"}));}
+    rec.appendChild(g)});
+  grPos.forEach((p,i)=>{const c=el("circle",{cx:p[0],cy:p[1],r:9,fill:"var(--cell)",stroke:"var(--ink-soft)","stroke-width":1});
+    c.style.transition="all 1.4s ease "+(i*0.08)+"s";gran.appendChild(c)});
+  msg.textContent=hasIgE?"FcεRI 已結合 IgE（Y 形）":"FcεRI 尚未結合 IgE";
+}
+document.getElementById("btnIgE").onclick=()=>{if(released)return;hasIgE=true;drawCell()};
+document.getElementById("btnAg").onclick=()=>{
+  if(released)return;
+  recAngles.slice(0,6).forEach((d,i)=>{const r=d*Math.PI/180,x=180+148*Math.cos(r),y=135+120*Math.sin(r);
+    ag.appendChild(el("circle",{cx:x,cy:y,r:6,fill:"var(--yellow)",stroke:"var(--yellow-deep)"}))});
+  if(!hasIgE){msg.textContent="沒有 IgE，抗原無法交聯受體 → 不脫顆粒";return}
+  released=true;
+  msg.textContent="IgE–FcεRI 交聯 → 顆粒與細胞膜融合，內容物（含 β-hex）釋出";
+  [...gran.children].forEach((c,i)=>{if(i%3===2)return; const p=grPos[i],dx=p[0]-180,dy=p[1]-135,l=Math.hypot(dx,dy);
+    c.setAttribute("cx",180+dx/l*150);c.setAttribute("cy",135+dy/l*118);c.setAttribute("r",4);c.setAttribute("fill","var(--yellow)")});
+};
+document.getElementById("btnReset").onclick=()=>{hasIgE=false;released=false;drawCell()};
+drawCell();
+
+/* ---------- interactive 2: pH ---------- */
+const sl=document.getElementById("phSlider");
+function phUpd(){const ph=+sl.value,f=1/(1+Math.pow(10,7.15-ph));
+  document.getElementById("phVal").textContent=ph.toFixed(1);
+  document.getElementById("phFrac").textContent=(f*100).toFixed(1)+" %";
+  document.getElementById("phWell").style.background=`color-mix(in srgb,var(--yellow) ${Math.round(f*100)}%,var(--well-empty))`;}
+sl.oninput=phUpd;phUpd();
+
+/* ---------- simulated data (shared by bench + analysis) ---------- */
+const groups=[
+  {key:"spon",name:"自發釋放（IgE，無抗原）"},
+  {key:"stim",name:"DNP-BSA 刺激"},
+  {key:"inh", name:"DNP-BSA + 測試物質"}
+];
+let sim;
+function rnd(a,b){return a+Math.random()*(b-a)}
+function makeSim(){
+  const blank=+rnd(0.04,0.07).toFixed(3);
+  const frac={spon:rnd(0.03,0.08),stim:rnd(0.30,0.50),inh:rnd(0.12,0.22)};
+  const data={};
+  groups.forEach(g=>{data[g.key]=[0,1,2].map(()=>{const T=rnd(1.0,1.4),f=Math.max(0.01,frac[g.key]+rnd(-0.02,0.02));
+    return {S:+(blank+T*f+rnd(-0.005,0.005)).toFixed(3),L:+(blank+T*(1-f)+rnd(-0.01,0.01)).toFixed(3)}})});
+  sim={blank,data};
+}
+function truth(k){const b=sim.blank,a=sim.data[k];const S=a.reduce((s,x)=>s+x.S,0)/3-b,L=a.reduce((s,x)=>s+x.L,0)/3-b;return S/(S+L)*100}
+makeSim();
+
+/* ---------- bench ---------- */
+const cols=groups.length; // 3 groups × 3 replicates = 9 wells per row
+const cellPlate=document.getElementById("cellPlate"),rxPlate=document.getElementById("rxPlate");
+function buildPlates(){
+  cellPlate.style.gridTemplateColumns=`3.2em repeat(9,1fr)`;
+  rxPlate.style.gridTemplateColumns=`3.2em repeat(10,1fr)`;
+  cellPlate.innerHTML="";rxPlate.innerHTML="";
+  cellPlate.insertAdjacentHTML("beforeend",`<div class="lab"></div>`+groups.map(g=>`<div class="lab" style="grid-column:span 3">${g.name.replace(/（.*）/,"")}</div>`).join(""));
+  cellPlate.insertAdjacentHTML("beforeend",`<div class="lab">細胞</div>`+Array.from({length:9},(_,i)=>`<div class="well" data-c="${i}"></div>`).join(""));
+  rxPlate.insertAdjacentHTML("beforeend",`<div class="lab">S</div>`+Array.from({length:9},(_,i)=>`<div class="well" data-s="${i}"></div>`).join("")+`<div class="well" data-b="0"></div>`);
+  rxPlate.insertAdjacentHTML("beforeend",`<div class="lab">L</div>`+Array.from({length:9},(_,i)=>`<div class="well" data-l="${i}"></div>`).join("")+`<div class="well" data-b="1"></div>`);
+}
+buildPlates();
+const W=(sel)=>[...document.querySelectorAll(sel)];
+function odAt(kind,i){const g=groups[Math.floor(i/3)].key,r=i%3;return sim.data[g][r][kind]}
+function colorRx(mode){ // mode: "faint" (acidic, before stop) | "stop"
+  const max=1.4;
+  W("[data-s]").forEach(w=>{const v=odAt("S",+w.dataset.s);w.style.background=tint(v/max,mode)});
+  W("[data-l]").forEach(w=>{const v=odAt("L",+w.dataset.l);w.style.background=tint(v/max,mode)});
+  W("[data-b]").forEach(w=>{w.style.background=tint(sim.blank/max,mode)});
+}
+function tint(x,mode){const p=Math.min(100,Math.round((mode==="stop"?x*100:x*12)));return `color-mix(in srgb,var(--yellow) ${p}%,var(--well-empty))`}
+
+const steps=[
+ {t:"種細胞（Day 1）",
+  q:"RBL-2H3 是貼附型細胞。以下哪種接種方式符合文獻中常見的 96 孔盤條件？",
+  opts:[["約 5×10⁴ cells/well，培養過夜讓細胞貼附","ok","文獻中常見 5×10⁴ cells/well 接種於 96 孔盤，於 37 °C、5% CO₂ 培養。[8]"],
+        ["接種後立即刺激，不需等細胞貼附","no","貼附型細胞需要時間貼盤並恢復狀態，文獻都在接種後隔天才進行後續步驟。[5]"],
+        ["先用胰蛋白酶處理成懸浮細胞後離心收集上清","no","這是懸浮細胞的處理方式。RBL-2H3 貼附生長，直接在孔中操作即可。"]],
+  act:()=>{W("[data-c]").forEach(w=>w.classList.add("cells"));setClock("Day 1")}},
+ {t:"IgE 致敏（過夜）",
+  q:"要讓抗原能引發脫顆粒，細胞必須先做什麼？",
+  opts:[["加入 anti-DNP IgE 培養過夜，讓 IgE 結合 FcεRI","ok","文獻中 anti-DNP IgE 濃度從 50 ng/mL 到 0.4 μg/mL 不等，常見做法是致敏過夜。[7][4] 本模擬中三組細胞都致敏，自發釋放組只是不加抗原。"],
+        ["加入 DNP-BSA 培養過夜","no","DNP-BSA 是抗原，必須在 IgE 結合受體之後才加，才能交聯 IgE–FcεRI。"],
+        ["不需致敏，RBL-2H3 本身就帶有 anti-DNP IgE","no","細胞表面有 FcεRI，但 IgE 必須外加。回到「原理」的互動 1 試試不加 IgE 會怎樣。"]],
+  act:()=>{W("[data-c]").forEach(w=>w.classList.add("ige"));setClock("Day 2")}},
+ {t:"清洗並換成刺激緩衝液",
+  q:"移除培養基、洗去未結合的 IgE 後，刺激時應該使用哪種緩衝液？",
+  opts:[["Tyrode's buffer（含 HEPES、NaCl、KCl、CaCl₂、MgCl₂、葡萄糖、BSA）","ok","文獻中的 Tyrode buffer：10 mM HEPES pH 7.4、130 mM NaCl、5 mM KCl、1.4 mM CaCl₂、1 mM MgCl₂、5.6 mM glucose、0.1% BSA。[4] 也有實驗室使用含 1.8 mM CaCl₂ 的 HBSS。[5]"],
+        ["不含 Ca²⁺/Mg²⁺ 的 PBS","no","脫顆粒需要胞外 Ca²⁺ 流入，缺少 Ca²⁺ 的緩衝液會讓抗原刺激的反應變差。"],
+        ["含 10% FBS 的完整培養基","no","血清成分複雜，可能帶來背景值或干擾，刺激通常改用成分明確的緩衝液。"]],
+  act:()=>{}},
+ {t:"加入測試物質（前處理）",
+  q:"若要測試某物質是否抑制脫顆粒，應該何時加入？",
+  opts:[["在加抗原之前，先與細胞於 37 °C 預處理一段時間","ok","文獻中常在加入抗原前預處理 10–30 分鐘（也有預處理 1 小時的做法）。[1][5][7] 另外兩組加入等量溶劑（vehicle）。"],
+        ["在讀盤之前直接加入反應盤","no","那樣測到的是它是否干擾酵素反應或吸光值，不是是否抑制細胞脫顆粒。"],
+        ["和 p-NAG 受質一起加入","no","受質反應時細胞已經不在反應盤中，這時加入無法影響脫顆粒。"]],
+  act:()=>{}},
+ {t:"抗原刺激 37 °C",
+  q:"下列哪個刺激條件與文獻常見設定一致？",
+  opts:[["DNP-BSA 約 100 ng/mL，37 °C 作用約 30 分鐘","ok","文獻常見以 DNP-BSA/DNP-HSA 100 ng/mL 刺激 RBL-2H3 約 30 分鐘（也有 15 分鐘或 1 小時的設定）。[4][5][1] 自發釋放組只加緩衝液。"],
+        ["DNP-BSA 於 4 °C 作用過夜","no","低溫會抑制胞吐，而脫顆粒在數分鐘到數十分鐘內就會發生，不需要過夜。"],
+        ["DNP-BSA 於 37 °C 作用 24 小時","no","時間過長會增加細胞死亡與非專一性漏出，混淆脫顆粒的判讀。"]],
+  act:(done)=>runTimer("37 °C 刺激中（30 分鐘，加速顯示）",1800,done), async:true},
+ {t:"終止刺激",
+  q:"刺激時間到，如何讓所有孔同時停止脫顆粒？",
+  opts:[["將盤子立即放到冰上","ok","低溫可迅速停止胞吐。[1][3]"],
+        ["直接加入 Triton X-100","no","Triton 會破壞細胞膜，把細胞內的酵素全部釋出，這樣就分不出上清與細胞內的量了。"],
+        ["加入鹼性終止液","no","鹼性終止液是用在之後的酵素呈色反應，不是用來停止細胞刺激。"]],
+  act:()=>{setClock("冰上")}},
+ {t:"收集上清液 → S",
+  q:"收集上清液時的重點是什麼？",
+  opts:[["輕柔吸取，不要帶到細胞，移到新的 96 孔盤","ok","若吸到細胞，上清的活性會被高估。[1][3] 防呆技巧：RBL-2H3 在強烈活化或測試物質具微毒性時，細胞會變圓、貼附力下降。可在盤子移至冰上終止刺激後，先將 96 孔盤低速短暫離心（例如 200–300 × g、5 分鐘、4 °C），再輕柔收取上清液，以確保無細胞干擾。"],
+        ["用力吹打讓細胞懸浮後一起吸出","no","這樣上清裡就含有細胞，細胞內的酵素也會被算成「已釋放」。"],
+        ["不必收集，直接在原孔加受質","no","必須把胞外（上清）與胞內（裂解液）分開測，才能算出釋放比例。"]],
+  act:()=>{W("[data-s]").forEach(w=>w.style.background="color-mix(in srgb,var(--teal) 10%,var(--well-empty))");W("[data-b]").forEach(w=>w.style.background="color-mix(in srgb,var(--teal) 10%,var(--well-empty))");document.getElementById("rxStatus").textContent="樣品已移入"}},
+ {t:"裂解細胞 → L",
+  q:"留在孔中的細胞要怎麼處理，才能測到細胞內殘留的 β-hexosaminidase？",
+  opts:[["加入與上清等體積、含 0.1% Triton X-100 的緩衝液裂解細胞","ok","文獻使用 0.05–0.5% Triton X-100 裂解細胞（也有以去離子水加凍融的方式）。[1][4][5] 本模擬取與上清相同體積，計算可直接用 S ÷ (S + L)。"],
+        ["用 PBS 清洗後丟棄","no","丟掉就無法得知總量，% release 需要分母（總活性）。"],
+        ["加入鹼性終止液讓細胞破裂","no","高 pH 會讓酵素失活，之後就測不到活性了。"]],
+  act:()=>{W("[data-c]").forEach(w=>{w.classList.remove("cells");w.style.background="color-mix(in srgb,var(--cell) 25%,var(--well-empty))"});W("[data-l]").forEach(w=>w.style.background="color-mix(in srgb,var(--teal) 10%,var(--well-empty))")}},
+ {t:"加入 p-NAG 受質 37 °C",
+  q:"p-NAG 受質應該溶在什麼條件下反應？",
+  opts:[["約 1 mM p-NAG，溶於檸檬酸緩衝液 pH 4.5，37 °C 反應約 60 分鐘","ok","例如 10 μL 樣品加 40 μL 1 mM p-NAG（0.05 M 檸檬酸鈉，pH 4.5），37 °C 60 分鐘。[5] 也有實驗室反應 90 分鐘。[1] Blank 只加緩衝液與受質。小提示：p-NAG 剛加入檸檬酸緩衝液時溶解較慢，實務上需充分 Vortex 或稍作溫浴確保完全溶解，否則 OD 值容易飄忽不定。"],
+        ["溶於 pH 10.5 碳酸鹽緩衝液","no","β-hexosaminidase 是溶酶體酵素，在酸性 pH 才有活性。pH 10 以上的溶液是用來終止反應的。"],
+        ["溶於 pH 7.4 Tyrode's buffer，室溫 5 分鐘","no","pH 與時間都不適合，反應量會太少。"]],
+  act:(done)=>{colorRx("faint");document.getElementById("rxStatus").textContent="酵素反應中";runTimer("37 °C 酵素反應中（60 分鐘，加速顯示）",2000,done)}, async:true},
+ {t:"加入終止液",
+  q:"反應結束時要加入什麼？",
+  opts:[["鹼性終止液，例如 0.05 M Na₂CO₃/NaHCO₃（pH 10.5）或 0.4 M glycine（pH 10.7）","ok","鹼性條件讓酵素停止作用，並使 p-nitrophenol 轉成黃色的 p-nitrophenolate。[5][4][1]"],
+        ["0.1 M HCl","no","酸性下產物幾乎無色，而且無法有效讓顏色最大化。回到「原理」的互動 2 拖到 pH 1–3 看看。"],
+        ["去離子水","no","水只會稀釋，酵素仍會繼續作用，各孔反應時間就不一致了。"]],
+  act:()=>{colorRx("stop");document.getElementById("rxStatus").textContent="已終止，呈黃色"}},
+ {t:"讀取吸光值",
+  q:"用讀盤機讀哪個波長？",
+  opts:[["405 nm（可搭配 620–630 nm 參考波長扣背景）","ok","p-nitrophenolate 在約 405 nm 有吸收。[1][3][5] 數據已送到「數據分析」頁。"],
+        ["570 nm","no","570 nm 是 MTT 等試驗常用的波長，不是 p-nitrophenolate 的吸收波長。"],
+        ["260 nm","no","260 nm 是核酸的吸收波長。"]],
+  act:()=>{document.getElementById("rxStatus").textContent="已讀盤 OD405";renderAnalysis()}}
+];
+let cur=0;
+const stepList=document.getElementById("stepList"),con=document.getElementById("console");
+function setClock(t){document.getElementById("clock").textContent=t}
+function renderSteps(){stepList.innerHTML=steps.map((s,i)=>`<li class="${i<cur?"done":i===cur?"now":""}">${s.t}</li>`).join("")}
+function shuffle(a){return a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1])}
+function renderConsole(){
+  renderSteps();
+  if(cur>=steps.length){
+    con.innerHTML=`<div class="eyebrow">完成</div><h3>實驗流程全部完成</h3><p>OD405 讀值已產生，請到 <a href="#analysis">3 數據分析</a> 計算 % release。</p><div class="row"><button id="restart">重新做一次（產生新數據）</button></div>`;
+    document.getElementById("restart").onclick=()=>{cur=0;makeSim();buildPlates();setClock("Day 1");document.getElementById("rxStatus").textContent="尚未開始";renderAnalysis();renderConsole()};
+    return;
+  }
+  const s=steps[cur];
+  con.innerHTML=`<div class="eyebrow">步驟 ${cur+1} / ${steps.length}</div><h3>${s.t}</h3><p>${s.q}</p><div class="choice" id="opts"></div><div id="fb"></div>`;
+  const box=document.getElementById("opts");
+  shuffle(s.opts).forEach((o,j)=>{const b=document.createElement("button");b.id="opt"+cur+"_"+j;b.textContent=o[0];
+    b.onclick=()=>{const fb=document.getElementById("fb");
+      fb.innerHTML=`<div class="feedback ${o[1]}">${o[1]==="ok"?"✔ 正確。":"✘ 再想想。"}${o[2]}</div>`;
+      if(o[1]==="ok"){box.querySelectorAll("button").forEach(x=>x.disabled=true);
+        const go=()=>{fb.insertAdjacentHTML("beforeend",`<div class="row" style="margin-top:10px"><button class="primary" id="next">下一步 →</button></div>`);
+          document.getElementById("next").onclick=()=>{cur++;renderConsole()}};
+        if(s.async){s.act(go)}else{s.act();go()}}};
+    box.appendChild(b)});
+}
+function runTimer(label,ms,done){
+  const fb=document.getElementById("fb");
+  fb.insertAdjacentHTML("beforeend",`<div style="margin-top:10px" class="note">${label}</div><div class="timer"><div id="bar_t"></div></div>`);
+  const bar=document.getElementById("bar_t"),t0=performance.now();
+  const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(reduce){bar.style.width="100%";done();return}
+  (function tick(t){const p=Math.min(1,(t-t0)/ms);bar.style.width=(p*100)+"%";if(p<1)requestAnimationFrame(tick);else done()})(t0);
+}
+renderConsole();
+
+/* ---------- analysis ---------- */
+function renderAnalysis(){
+  const tb=document.getElementById("odTable");
+  let h=`<thead><tr><th>組別</th><th>重複</th><th class="num">S（上清）</th><th class="num">L（裂解液）</th></tr></thead><tbody>`;
+  groups.forEach(g=>sim.data[g.key].forEach((x,r)=>{h+=`<tr><td>${r===0?g.name:""}</td><td>${r+1}</td><td class="num">${x.S.toFixed(3)}</td><td class="num">${x.L.toFixed(3)}</td></tr>`}));
+  tb.innerHTML=h+"</tbody>";
+  document.getElementById("blankVal").textContent=sim.blank.toFixed(3);
+  document.getElementById("answerBox").innerHTML=groups.map(g=>`<div class="row" style="justify-content:space-between"><label for="ans_${g.key}">${g.name}</label><span><input type="number" step="0.1" id="ans_${g.key}"> %</span></div>`).join("");
+  document.getElementById("ansFeedback").innerHTML="";
+  document.getElementById("bar").innerHTML="";
+}
+function drawBar(){
+  const svg=document.getElementById("bar");const vals=groups.map(g=>truth(g.key));
+  const max=Math.max(60,Math.ceil(Math.max(...vals)/10)*10),x0=44,y0=200,h=170,bw=70,gap=30;
+  let s="";
+  for(let v=0;v<=max;v+=10){const y=y0-v/max*h;s+=`<line x1="${x0}" x2="350" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${x0-6}" y="${y+4}" font-size="10" text-anchor="end">${v}</text>`}
+  vals.forEach((v,i)=>{const x=x0+20+i*(bw+gap),y=y0-v/max*h;
+    s+=`<rect x="${x}" y="${y}" width="${bw}" height="${y0-y}" fill="${i===1?"var(--yellow)":"var(--teal)"}" rx="3"/><text x="${x+bw/2}" y="${y-5}" font-size="11" text-anchor="middle" class="mono">${v.toFixed(1)}</text><text x="${x+bw/2}" y="${y0+16}" font-size="11" text-anchor="middle">${["自發","刺激","刺激+測試物"][i]}</text>`});
+  s+=`<text x="12" y="110" font-size="11" transform="rotate(-90 12 110)" text-anchor="middle">% release（模擬）</text>`;
+  svg.innerHTML=s;
+}
+document.getElementById("checkAns").onclick=()=>{
+  let ok=0,lines=[];
+  groups.forEach(g=>{const v=parseFloat(document.getElementById("ans_"+g.key).value),t=truth(g.key);
+    const pass=!isNaN(v)&&Math.abs(v-t)<=1.0;if(pass)ok++;lines.push(`${g.name}：${isNaN(v)?"未填":pass?"✔":"✘"}`)});
+  document.getElementById("ansFeedback").innerHTML=`<div class="feedback ${ok===3?"ok":"no"}">${lines.join("<br>")}${ok<3?"<br>提示：先平均三重複，再分別扣 blank，最後代公式。":""}</div>`;
+  if(ok===3)drawBar();
+};
+document.getElementById("showAns").onclick=()=>{
+  const b=sim.blank;
+  const rows=groups.map(g=>{const a=sim.data[g.key],S=a.reduce((s,x)=>s+x.S,0)/3,L=a.reduce((s,x)=>s+x.L,0)/3;
+    return `${g.name}：S̄ = ${S.toFixed(3)}，L̄ = ${L.toFixed(3)} → (${(S-b).toFixed(3)}) ÷ (${(S-b).toFixed(3)} + ${(L-b).toFixed(3)}) × 100 = <b>${truth(g.key).toFixed(1)} %</b>`});
+  const net=k=>truth(k)-truth("spon"),inh=(1-net("inh")/net("stim"))*100;
+  document.getElementById("ansFeedback").innerHTML=`<div class="feedback ok mono" style="font-size:.85rem">${rows.join("<br>")}<br>抑制率 = (1 − ${net("inh").toFixed(1)} ÷ ${net("stim").toFixed(1)}) × 100 = <b>${inh.toFixed(1)} %</b></div>`;
+  drawBar();
+};
+document.getElementById("regen").onclick=()=>{makeSim();renderAnalysis();if(cur>=8)colorRx(cur>=10?"stop":"faint")};
+renderAnalysis();
+})();
+</script>
+<script>
+/* lab-print-style-v2 — 列印時展開所有摺疊問答，列印後還原 */
+(function(){
+  function all(){ return document.querySelectorAll("details"); }
+  window.addEventListener("beforeprint",function(){
+    all().forEach(function(d){ d.dataset.pwOpen = d.open ? "1" : "0"; d.open = true; });
+  });
+  window.addEventListener("afterprint",function(){
+    all().forEach(function(d){ d.open = d.dataset.pwOpen === "1"; delete d.dataset.pwOpen; });
+  });
+})();
+</script>
+</body>
+</html>
