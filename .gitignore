@@ -1,0 +1,4 @@
+admin.html
+*.pdf
+*.bak-*
+.DS_Store
