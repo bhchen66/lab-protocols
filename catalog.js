@@ -46,6 +46,8 @@ window.CATALOG = {
   ],
   "entries": [
     {
+      "id": "L001",
+      "status": "active",
       "file": "RAW 264.7 LPS 誘導 NO (Griess 法) 實驗互動講義 v1.html",
       "title": "LPS 誘導 NO 生成（Griess 法）",
       "cell": "RAW 264.7",
@@ -56,6 +58,8 @@ window.CATALOG = {
       "superseded": []
     },
     {
+      "id": "L002",
+      "status": "active",
       "file": "RAW 264.7 LPS 誘導 ROS 實驗互動講義 v2.html",
       "title": "LPS 誘導 ROS 生成",
       "cell": "RAW 264.7",
@@ -72,6 +76,8 @@ window.CATALOG = {
       ]
     },
     {
+      "id": "L003",
+      "status": "active",
       "file": "β-Hexosaminidase 脫顆粒實驗模擬 (肥大細胞 RBL-2H3) v3.html",
       "title": "β-Hexosaminidase 脫顆粒實驗模擬",
       "cell": "RBL-2H3",
@@ -93,6 +99,8 @@ window.CATALOG = {
       ]
     },
     {
+      "id": "L004",
+      "status": "active",
       "file": "β-Hexosaminidase 脫顆粒實驗模擬 (A23187 + PMA 誘導, RBL-2H3) v1.html",
       "title": "β-Hexosaminidase 脫顆粒實驗模擬（A23187 + PMA）",
       "cell": "RBL-2H3",
@@ -103,12 +111,19 @@ window.CATALOG = {
       "superseded": []
     },
     {
+      "id": "L005",
+      "status": "active",
       "file": "DCFDA 量測前處理抑制 ROS (RAW 264.7 與 RBL-2H3) v1.html",
-      "title": "DCFDA 量測前處理抑制 ROS (RAW 264.7 與 RBL-2H3) v1.html",
-      "superseded": [],
-      "cell": "topic",
-      "stimulus": "version",
-      "updated": "2026-11-17"
+      "title": "以 DCFDA 量測待測物前處理對 ROS 的抑制",
+      "cell": [
+        "RAW 264.7",
+        "RBL-2H3"
+      ],
+      "topic": "ROS 抑制（DCFDA；螢光顯微鏡＋流式）",
+      "stimulus": "LPS／IgE＋抗原",
+      "version": "v1",
+      "updated": "2026-11-17",
+      "superseded": []
     }
   ]
 };
