@@ -109,21 +109,6 @@ window.CATALOG = {
       "version": "v1",
       "updated": "2026-11-17",
       "superseded": []
-    },
-    {
-      "id": "L005",
-      "status": "active",
-      "file": "DCFDA 量測前處理抑制 ROS (RAW 264.7 與 RBL-2H3) v1.html",
-      "title": "以 DCFDA 量測待測物前處理對 ROS 的抑制",
-      "cell": [
-        "RAW 264.7",
-        "RBL-2H3"
-      ],
-      "topic": "ROS 抑制（DCFDA；螢光顯微鏡＋流式）",
-      "stimulus": "LPS／IgE＋抗原",
-      "version": "v1",
-      "updated": "2026-11-17",
-      "superseded": []
     }
   ]
 };
