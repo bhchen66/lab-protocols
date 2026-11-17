@@ -104,7 +104,7 @@ window.CATALOG = {
     },
     {
       "file": "DCFDA 量測前處理抑制 ROS (RAW 264.7 與 RBL-2H3) v1.html",
-      "title": "DCFDA 量測前處理抑制 ROS (RAW 264.7 與 RBL-2H3) v1",
+      "title": "DCFDA 量測前處理抑制 ROS (RAW 264.7 與 RBL-2H3) v1.html",
       "superseded": [],
       "cell": "topic",
       "stimulus": "version",
