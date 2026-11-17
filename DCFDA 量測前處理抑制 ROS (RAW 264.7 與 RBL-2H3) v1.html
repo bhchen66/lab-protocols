@@ -183,6 +183,42 @@ canvas{display:block;width:100%}
   .pathwrap{grid-template-columns:1fr}
   .infopanel{position:static}
 }
+/* ===== lab-print-style-v2 — 列印（Cmd-P）專用，自動注入 ===== */
+/* 同時相容兩種版型：分頁式（nav.tabs + 隱藏 section）與側欄式（nav.side + .shell） */
+@media print{
+  :root{--ink:#000;--ink-soft:#3a3a3a;--muted:#3a3a3a;--bg:#fff;--paper:#fff;
+        --surface:#fff;--surface2:#f2f2f2;--line:#bbb;color-scheme:light}
+  @page{margin:15mm 13mm}
+  body{font-size:10.5pt;background:#fff}
+  /* 版面攤平 */
+  .shell{display:block!important}
+  main{padding:0!important;gap:0!important;display:block!important}
+  nav,nav.side,nav.tabs{display:none!important}
+  header.top,header.hero{border-bottom:2px solid #000;padding:0 0 10px;margin-bottom:10px}
+  /* 分頁式：讓被隱藏的 section 全部顯示 */
+  main section{display:block!important;break-before:page;padding:0 0 8px}
+  main section:first-of-type{break-before:auto}
+  section.unit{break-before:page}
+  section.unit:first-of-type{break-before:auto}
+  h2{margin-top:12px}
+  .unit-head{border-bottom:2px solid #000}
+  /* 隱藏互動控制項，但保留測驗選項與內容 */
+  .controls,.seg,.btn,.scorebar,.glos-tools,.timer,.choice,
+  #console,#regen,#checkAns,#showAns,#qReset,
+  input[type=range],input[type=number],input[type=search],input[type=text],select
+    {display:none!important}
+  .opt,.q .opt{display:block!important;border:1px solid #999!important;background:#fff!important}
+  /* 區塊不被切斷 */
+  .card,.stat,.note,.q,.step,details{break-inside:avoid}
+  details summary{list-style:none;font-weight:700}
+  canvas,svg,table,.plate,.well,.eq,.formula{break-inside:avoid;max-width:100%}
+  tr{break-inside:avoid}
+  .sim-tag,.pill,.badge,.lv{border:1px solid #999}
+  /* 連結：本文不印網址，參考文獻才印 */
+  a{color:#000;text-decoration:none}
+  .refs a[href^="http"]::after,ol.refs a[href^="http"]::after
+    {content:" (" attr(href) ")";font-size:.72em;color:#444;word-break:break-all}
+}
 </style>
 </head>
 <body>
@@ -1083,6 +1119,18 @@ function all(){drawPath();drawDcfh();drawTL();drawPlate();fillScGroups();drawSco
 all();markCites(document);
 let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{drawScope();drawGate();drawHS();drawBar();},150);});
 if(window.matchMedia)window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{drawPath();drawDcfh();drawPlate();drawScope();drawGate();drawHS();drawBar();});
+})();
+</script>
+<script>
+/* lab-print-style-v2 — 列印時展開所有摺疊問答，列印後還原 */
+(function(){
+  function all(){ return document.querySelectorAll("details"); }
+  window.addEventListener("beforeprint",function(){
+    all().forEach(function(d){ d.dataset.pwOpen = d.open ? "1" : "0"; d.open = true; });
+  });
+  window.addEventListener("afterprint",function(){
+    all().forEach(function(d){ d.open = d.dataset.pwOpen === "1"; delete d.dataset.pwOpen; });
+  });
 })();
 </script>
 </body>
