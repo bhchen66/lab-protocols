@@ -1,9 +1,7 @@
 /* ============================================================
    catalog.js — 實驗互動講義清單
    由 deploy_lab_pages.command 或 admin.html 維護。
-   注意：下方 = 之後必須是「嚴格 JSON」（鍵要加引號、不可有註解），
-         腳本才能解析與改寫。註解只能寫在這個檔頭區塊裡。
-   採 .js 而非 .json，是為了讓入口頁以 file:// 開啟時也能讀取。
+   window.CATALOG 之後必須是嚴格 JSON（鍵加引號、無註解）。
    ============================================================ */
 window.CATALOG = {
   "meta": {
@@ -103,6 +101,14 @@ window.CATALOG = {
       "version": "v1",
       "updated": "2026-11-17",
       "superseded": []
+    },
+    {
+      "file": "DCFDA 量測前處理抑制 ROS (RAW 264.7 與 RBL-2H3) v1.html",
+      "title": "DCFDA 量測前處理抑制 ROS (RAW 264.7 與 RBL-2H3) v1",
+      "superseded": [],
+      "cell": "topic",
+      "stimulus": "version",
+      "updated": "2026-11-17"
     }
   ]
 };

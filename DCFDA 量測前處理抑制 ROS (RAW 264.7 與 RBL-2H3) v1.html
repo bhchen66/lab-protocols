@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>以 DCFDA 量測待測物前處理對 ROS 的抑制（RAW 264.7 與 RBL-2H3）互動講義 v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --surface2:#eaf0ee; --ink:#14201c; --muted:#5a6b66; --line:#d3ddd9;
+  --accent:#0d8a5c; --accent-soft:#d8f1e6; --lps:#a8326e; --lps-soft:#f6e1ec; --mast:#2f5fb5; --mast-soft:#dfe8f8;
+  --warn:#a76a10; --warn-soft:#fbefd9; --bad:#b83a2e; --good:#1c8550;
+  --c-unst:#9aa7a3; --c-ctrl:#4b5a56; --c-stim:#a8326e; --c-pos:#d07a14; --c-ref:#2f6fb5; --c-ref2:#8a6fc4; --c-s1:#47b07a; --c-s2:#1f8a5a; --c-s3:#0f5c3b; --c-xo:#7a8f2a; --c-xu:#b39a3a;
+  --display:"Noto Serif TC","Songti TC",serif; --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --scope-bg:#050807;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1312; --surface:#141c1a; --surface2:#1a2522; --ink:#e3ebe8; --muted:#94a5a0; --line:#28362f;
+    --accent:#3fd99a; --accent-soft:#163a2b; --lps:#e46aa3; --lps-soft:#3a1a2a; --mast:#7aa5ef; --mast-soft:#18243a;
+    --warn:#e2a74a; --warn-soft:#3a2b12; --bad:#ef6b5f; --good:#4fcf8a;
+    --c-unst:#6f7d79; --c-ctrl:#c3cfcb; --c-stim:#e46aa3; --c-pos:#f0a040; --c-ref:#6aa7ef; --c-ref2:#b39cf0; --c-s1:#7be0aa; --c-s2:#3fd99a; --c-s3:#1fa36b; --c-xo:#c2d66a; --c-xu:#e2c66a;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.75}
+a{color:var(--accent)}
+h1,h2,h3{font-family:var(--display);line-height:1.35;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.5rem,3.2vw,2.2rem)}
+h2{font-size:1.55rem}
+h3{font-size:1.12rem;font-family:var(--body);font-weight:700}
+p{margin:0}
+.shell{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100%}
+nav.side{position:sticky;top:0;height:100vh;overflow:auto;border-right:1px solid var(--line);background:var(--surface);padding:16px 16px 20px;display:flex;flex-direction:column;gap:14px}
+nav.side .back{font-size:.85rem;text-decoration:none;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:4px 8px;align-self:flex-start}
+nav.side .back:hover{color:var(--accent);border-color:var(--accent)}
+nav.side .brand{font-family:var(--display);font-weight:700;font-size:1.02rem;line-height:1.45}
+nav.side ol{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:2px}
+nav.side li a{display:flex;gap:10px;align-items:baseline;padding:5px 8px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:.92rem}
+nav.side li.sub a{padding-left:34px;font-size:.84rem;color:var(--muted)}
+nav.side li a:hover,nav.side li a:focus-visible{background:var(--surface2)}
+nav.side li a span.n{font-family:var(--mono);font-size:.78rem;color:var(--muted);min-width:1.6em}
+nav.side .legend{font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+main{padding:28px clamp(16px,4vw,56px) 80px;display:flex;flex-direction:column;gap:56px;min-width:0}
+header.hero{display:flex;flex-direction:column;gap:14px;max-width:64rem}
+.kicker{font-family:var(--mono);font-size:.8rem;color:var(--accent);letter-spacing:.04em}
+.ver{display:inline-block;border:1px solid var(--accent);border-radius:4px;padding:0 6px;font-weight:600}
+.lead{color:var(--muted);max-width:68ch}
+section.unit{display:flex;flex-direction:column;gap:20px;scroll-margin-top:16px}
+.unit-head{display:flex;gap:14px;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.unit-head .num{font-family:var(--mono);font-size:1rem;color:var(--accent);font-weight:600}
+h3.sub{scroll-margin-top:16px;margin-top:8px}
+.prose{display:flex;flex-direction:column;gap:12px;max-width:70ch}
+.lv{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 8px;border-radius:999px;vertical-align:2px;margin-right:6px;font-family:var(--body);letter-spacing:.02em;white-space:nowrap}
+.lv.b{background:var(--accent-soft);color:var(--accent)}
+.lv.a{background:var(--lps-soft);color:var(--lps)}
+.lv.r{background:var(--warn-soft);color:var(--warn)}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 8px;border-radius:4px;font-family:var(--mono)}
+.tag.raw{background:var(--lps-soft);color:var(--lps)}
+.tag.rbl{background:var(--mast-soft);color:var(--mast)}
+.cite{font-family:var(--mono);font-size:.75em;vertical-align:super;line-height:0;text-decoration:none;color:var(--accent);margin-left:1px}
+.cite.cc::before{content:","}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card.raw{border-top:4px solid var(--lps)}
+.card.rbl{border-top:4px solid var(--mast)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.note{border-left:4px solid var(--warn);background:var(--warn-soft);padding:12px 16px;border-radius:0 8px 8px 0;max-width:76ch}
+.note.green{border-color:var(--accent);background:var(--accent-soft)}
+.note.red{border-color:var(--lps);background:var(--lps-soft)}
+.note.blue{border-color:var(--mast);background:var(--mast-soft)}
+.note>strong:first-child{display:block;margin-bottom:2px}
+ul.tight,ol.tight{margin:0;padding-left:1.25em;display:flex;flex-direction:column;gap:5px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--surface2);font-weight:700;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-family:var(--mono)}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+button,select,input{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--surface);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.9rem}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,.well:focus-visible,.pnode:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-size:.9rem}
+.controls label{display:flex;gap:6px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:none;border-right:1px solid var(--line);background:var(--surface);padding:5px 12px;cursor:pointer;font-size:.88rem}
+.seg button:last-child{border-right:none}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 8px;max-width:100%}
+canvas{display:block;width:100%}
+.sim-tag{font-family:var(--mono);font-size:.72rem;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:0 6px;align-self:flex-start}
+.formula{font-family:var(--mono);background:var(--surface2);padding:8px 12px;border-radius:8px;overflow-x:auto;font-size:.88rem;line-height:1.8}
+.out{font-family:var(--mono);font-size:.9rem;background:var(--accent-soft);border-radius:8px;padding:10px 14px;line-height:1.8}
+.warnline{color:var(--warn);font-size:.86rem;min-height:1.4em}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stat{background:var(--surface2);border-radius:8px;padding:10px 12px}
+.stat .k{font-size:.78rem;color:var(--muted)}
+.stat .v{font-family:var(--mono);font-size:1.2rem;font-weight:600}
+/* compare table */
+.cmp td:first-child{font-weight:700;white-space:nowrap}
+.cmp th.raw{color:var(--lps)} .cmp th.rbl{color:var(--mast)}
+/* pathway chain */
+.pathwrap{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:16px}
+.chain{display:flex;flex-direction:column;align-items:stretch;gap:0}
+.prow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.parrow{text-align:center;color:var(--muted);font-size:1.1rem;line-height:1.5}
+.pnode{border:1.5px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:.88rem;text-align:center;min-width:120px;position:relative}
+.pnode.k-lig{border-color:var(--lps)} .pnode.k-rec{border-color:var(--mast)} .pnode.k-enz{border-color:var(--accent)} .pnode.k-ros{border-color:var(--c-pos);border-radius:18px;background:color-mix(in srgb,var(--c-pos) 12%,var(--surface))} .pnode.k-probe{border-color:var(--accent);background:var(--accent-soft)} .pnode.k-out{border-style:dashed}
+.pnode.sel{box-shadow:0 0 0 3px var(--accent)}
+.pnode .inh{display:block;font-size:.7rem;font-family:var(--mono);color:var(--bad);margin-top:2px}
+.infopanel{position:sticky;top:12px;align-self:start}
+/* dcfh */
+.dcfh svg{width:100%;height:auto;max-height:320px}
+/* timeline */
+.tl{display:flex;flex-direction:column;gap:6px}
+.tlrow{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px}
+.tlseg{flex:1 0 120px;border-radius:8px;padding:8px 10px;font-size:.82rem;line-height:1.5;background:var(--surface2);border:1px solid var(--line);cursor:pointer;text-align:left}
+.tlseg .t{display:block;font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+.tlseg.key{border:2px solid var(--accent);background:var(--accent-soft)}
+.tlseg.stim{border:2px solid var(--c-stim)}
+.tlseg[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
+/* plate */
+.platebox{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start}
+.plate{display:grid;grid-template-columns:22px repeat(6,52px);grid-auto-rows:52px;gap:6px;background:var(--surface2);padding:12px;border-radius:14px;border:1px solid var(--line)}
+.plate .lab{font-family:var(--mono);font-size:.75rem;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.well{border-radius:50%;border:2px solid var(--line);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.68rem;font-weight:600;color:#fff;text-shadow:0 0 2px rgba(0,0,0,.6);padding:0}
+.well.sel{outline:3px solid var(--ink);outline-offset:2px}
+.well.lo{color:var(--ink);text-shadow:none}
+.well.empty{background:transparent!important;color:var(--muted);text-shadow:none;border-style:dashed}
+@media (max-width:700px){.platebox{grid-template-columns:1fr}.plate{grid-template-columns:18px repeat(6,40px);grid-auto-rows:40px}}
+/* scope */
+.scope{background:var(--scope-bg);border-radius:10px;overflow:hidden;position:relative}
+.scope .ov{position:absolute;left:10px;bottom:8px;font-family:var(--mono);font-size:.72rem;color:#cfe9dc}
+/* steps */
+.stepper{display:flex;flex-direction:column;border-left:2px solid var(--line);margin-left:10px}
+.step{position:relative;padding:0 0 16px 26px}
+.step::before{content:attr(data-n);position:absolute;left:-15px;top:0;width:28px;height:28px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);font-family:var(--mono);font-size:.8rem;font-weight:600;display:flex;align-items:center;justify-content:center}
+.step details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 16px}
+.step summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:10px}
+.step summary::-webkit-details-marker{display:none}
+.step summary .t{font-family:var(--mono);font-weight:400;color:var(--muted);font-size:.84rem;white-space:nowrap}
+.step .body{display:flex;flex-direction:column;gap:8px;padding-top:8px;font-size:.93rem}
+.why{color:var(--accent);font-weight:700}
+.err{color:var(--bad);font-weight:700}
+/* quiz */
+.quiz{display:flex;flex-direction:column;gap:14px}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.q .qh{display:flex;gap:10px;align-items:baseline}
+.q .qn{font-family:var(--mono);color:var(--muted);font-size:.85rem}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opt{text-align:left;border:1px solid var(--line);background:var(--surface);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:.93rem;line-height:1.6}
+.opt:hover{border-color:var(--accent)}
+.opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--surface))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--surface))}
+.fb{font-size:.92rem;border-top:1px dashed var(--line);padding-top:8px}
+.fb[hidden]{display:none}
+.scorebar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:2;border-bottom:1px solid var(--line)}
+/* glossary */
+.glos-tools{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.glos-tools input{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-width:240px}
+#glosTable td:first-child{font-family:var(--mono);font-weight:600;white-space:nowrap}
+/* refs */
+.refs ol{padding-left:2.4em;display:flex;flex-direction:column;gap:6px;font-size:.86rem;margin:0}
+.refs li{scroll-margin-top:20px}
+.refs li:target{background:var(--accent-soft)}
+.avg-in{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-family:var(--mono)}
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr}
+  nav.side{position:sticky;top:0;height:auto;z-index:5;flex-direction:row;overflow-x:auto;padding:8px 12px;gap:8px;border-right:none;border-bottom:1px solid var(--line);align-items:center}
+  nav.side .brand,nav.side .legend,nav.side li.sub{display:none}
+  nav.side ol{flex-direction:row}
+  nav.side li a{white-space:nowrap}
+  nav.side .back{white-space:nowrap}
+  .pathwrap{grid-template-columns:1fr}
+  .infopanel{position:static}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+<nav class="side" aria-label="單元目錄">
+  <a class="back" href="index.html">← 返回講義總覽</a>
+  <div class="brand">DCFDA × ROS 抑制<br><span class="muted small">RAW 264.7 ／ RBL-2H3 · <span class="mono">v1</span></span></div>
+  <ol>
+    <li><a href="#u1"><span class="n">01</span>原理</a></li>
+    <li class="sub"><a href="#u1-1">1-1 實驗問題與設計邏輯</a></li>
+    <li class="sub"><a href="#u1-2">1-2 兩株細胞比較</a></li>
+    <li class="sub"><a href="#u1-3">1-3 ROS 從哪裡來</a></li>
+    <li class="sub"><a href="#u1-4">1-4 DCFDA 探針</a></li>
+    <li class="sub"><a href="#u1-5">1-5 顯微鏡與流式</a></li>
+    <li><a href="#u2"><span class="n">02</span>虛擬實驗台</a></li>
+    <li class="sub"><a href="#u2-1">2-1 時間軸</a></li>
+    <li class="sub"><a href="#u2-2">2-2 分組與孔盤配置</a></li>
+    <li class="sub"><a href="#u2-3">2-3 操作步驟</a></li>
+    <li class="sub"><a href="#u2-4">2-4 螢光顯微鏡模擬</a></li>
+    <li class="sub"><a href="#u2-5">2-5 流式上機模擬</a></li>
+    <li><a href="#u3"><span class="n">03</span>數據分析</a></li>
+    <li class="sub"><a href="#u3-1">3-1 MFI 與三種平均</a></li>
+    <li class="sub"><a href="#u3-2">3-2 Histogram 與抑制率</a></li>
+    <li class="sub"><a href="#u3-3">3-3 顯微影像定量</a></li>
+    <li class="sub"><a href="#u3-4">3-4 多次實驗整理</a></li>
+    <li class="sub"><a href="#u3-5">3-5 互動測驗</a></li>
+    <li><a href="#u4"><span class="n">04</span>注意事項</a></li>
+    <li><a href="#u5"><span class="n">05</span>專有名詞</a></li>
+    <li><a href="#u6"><span class="n">06</span>參考文獻</a></li>
+  </ol>
+  <div class="legend">
+    <div><span class="lv b">基本</span>大學部／研究所皆適用</div>
+    <div><span class="lv a">進階</span>研究所適用</div>
+    <div><span class="lv r">建議</span>本講義的操作建議，非文獻定論</div>
+    <div><span class="tag raw">RAW</span> 巨噬細胞　<span class="tag rbl">RBL</span> 肥大細胞模型</div>
+    <div>上標數字＝參考文獻編號</div>
+  </div>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kicker">DCFDA（DCFH-DA） · 螢光顯微鏡 · 流式細胞儀 · <span class="ver">v1</span></div>
+  <h1>以 DCFDA 量測待測物（X）前處理能否抑制 RAW 264.7 與 RBL-2H3 細胞的 ROS 生成</h1>
+  <p class="lead">本實驗的問題：待測化合物或植物萃取物（以下稱 <strong>X</strong>）先處理細胞，再給予刺激，細胞內 ROS 的上升是否變小？本講義把兩株用途不同的細胞放在一起比較：<strong>RAW 264.7</strong>（小鼠巨噬細胞，以 LPS 刺激）與 <strong>RBL-2H3</strong>（大鼠嗜鹼性白血病細胞，常作為肥大細胞模型，以 IgE／抗原刺激），並以螢光顯微鏡與流式細胞儀兩種方法讀取 DCF 螢光。</p>
+  <div class="note green small"><strong>閱讀方式</strong>每段標有 <span class="lv b">基本</span> 或 <span class="lv a">進階</span>，大學部可只讀「基本」。<span class="lv r">建議</span> 是本講義依文獻整理出的操作建議，請以你們實驗室的預實驗確認。所有圖表、模擬影像與數值皆為<strong>模擬數據</strong>，僅供教學示範，不代表任何真實實驗結果。</div>
+</header>
+
+<!-- ================= 01 原理 ================= -->
+<section class="unit" id="u1">
+  <div class="unit-head"><span class="num">01</span><h2>原理</h2></div>
+
+  <h3 class="sub" id="u1-1"><span class="lv b">基本</span>1-1　實驗問題與設計邏輯</h3>
+  <div class="grid3">
+    <div class="card"><h3>① 前處理</h3><p class="small">先加入 X（多個濃度）或溶劑，讓細胞在<strong>刺激之前</strong>就接觸 X。問的是「預防性」抑制：X 能否改變細胞之後對刺激的反應。</p></div>
+    <div class="card"><h3>② 刺激</h3><p class="small"><span class="tag raw">RAW</span> 以 LPS 活化 TLR4；<span class="tag rbl">RBL</span> 先以 IgE 致敏，再以多價抗原交聯 FcεRI。兩者都會讓細胞內 ROS 上升，但<strong>時間尺度差很多</strong>（見 1-3）。</p></div>
+    <div class="card"><h3>③ 讀取</h3><p class="small">DCFH-DA 進入細胞後被氧化成綠色螢光 DCF。顯微鏡看「訊號在哪裡、整體趨勢」，流式逐顆量測上萬個細胞得到分布與 MFI。</p></div>
+  </div>
+  <div class="formula">X 的效果 = 比較「X＋刺激」與「溶劑＋刺激」的 DCF 訊號<br>前提：刺激組 ＞ 未刺激組（模型成立），且參考抑制劑能把刺激組壓下來（模型可被抑制）</div>
+  <div class="note"><strong>一定要平行做存活試驗</strong>X 若具毒性，細胞變少或狀態變差也會使 DCF 下降，看起來像「抑制 ROS」。文獻在 RAW 264.7 的 ROS 實驗前多先以 MTT 等方法確認不具毒性的濃度。<a class="cite" href="#r32">32</a><a class="cite" href="#r33">33</a> RBL-2H3 的研究同樣先以 MTT 評估萃取物毒性。<a class="cite" href="#r37">37</a></div>
+
+  <h3 class="sub" id="u1-2"><span class="lv b">基本</span>1-2　兩株細胞比較</h3>
+  <div class="tablewrap"><table class="cmp">
+    <thead><tr><th>項目</th><th class="raw">RAW 264.7</th><th class="rbl">RBL-2H3</th></tr></thead>
+    <tbody>
+      <tr><td>物種／類型</td><td>小鼠單核球／巨噬細胞樣細胞株<a class="cite" href="#r1">1</a></td><td>大鼠（Wistar）嗜鹼性白血病細胞株；Cellosaurus 歸類為嗜鹼性球<a class="cite" href="#r5">5</a><a class="cite" href="#r6">6</a></td></tr>
+      <tr><td>來源</td><td>雄性 BALB/c 小鼠經 Abelson 小鼠白血病病毒誘發腫瘤的腹水，1978 年由 Raschke 等人建立<a class="cite" href="#r1">1</a><a class="cite" href="#r2">2</a></td><td>1978 年於美國國家牙科研究所，由以腫瘤形式維持的 Wistar 大鼠嗜鹼性細胞分離並選殖<a class="cite" href="#r5">5</a></td></tr>
+      <tr><td>ATCC 編號</td><td class="mono">TIB-71<a class="cite" href="#r1">1</a></td><td class="mono">CRL-2256<a class="cite" href="#r5">5</a></td></tr>
+      <tr><td>型態與生長</td><td>貼附生長<a class="cite" href="#r1">1</a></td><td>貼附生長，類纖維母細胞型態<a class="cite" href="#r5">5</a></td></tr>
+      <tr><td>建議培養基</td><td>DMEM<a class="cite" href="#r1">1</a></td><td>ATCC：EMEM＋15% 熱去活化 FBS<a class="cite" href="#r5">5</a>；也有研究使用 DMEM＋10% FBS<a class="cite" href="#r13">13</a></td></tr>
+      <tr><td>倍增時間</td><td>依來源約 11–30 小時<a class="cite" href="#r4">4</a></td><td>約 50–60 小時（DSMZ 資料）<a class="cite" href="#r6">6</a></td></tr>
+      <tr><td>本實驗的刺激</td><td>LPS → TLR4</td><td>IgE 致敏 → 抗原（如 DNP-／TNP-BSA）交聯 FcεRI<a class="cite" href="#r7">7</a></td></tr>
+      <tr><td>ROS 出現時間</td><td>文獻從 LPS 15 分鐘<a class="cite" href="#r31">31</a> 到 18 小時<a class="cite" href="#r30">30</a> 都有量測</td><td>抗原刺激後<strong>立即</strong>上升，約 5 分鐘達高峰<a class="cite" href="#r7">7</a></td></tr>
+      <tr><td>主要相關功能讀值</td><td>NO、細胞激素等發炎指標</td><td>脫顆粒（β-hexosaminidase、組織胺）、LTC₄<a class="cite" href="#r7">7</a></td></tr>
+      <tr><td>使用注意</td><td>表型在第 10–30 代穩定，建議不用第 30 代以後<a class="cite" href="#r3">3</a></td><td>Cellosaurus 註記 compound 48/80 對此株具毒性<a class="cite" href="#r6">6</a>；生物安全等級 BSL-1<a class="cite" href="#r5">5</a></td></tr>
+    </tbody>
+  </table></div>
+  <div class="note blue small"><strong><span class="lv a">進階</span>肥大細胞會不會自己產生 ROS？</strong>這曾有爭議：Swindle 等人認為大鼠腹腔肥大細胞測到的 ROS 來自混入的巨噬細胞。<a class="cite" href="#r7">7</a> 之後在 RBL-2H3 與骨髓衍生肥大細胞的研究顯示，FcεRI 交聯可引發細胞內氧化爆發（含 H₂O₂）。<a class="cite" href="#r7">7</a> 以抗 FcεRIα 抗體直接交聯 RBL-2H3，也可測到快速的超氧生成。<a class="cite" href="#r11">11</a> 相關機制可參考 Swindle 與 Metcalfe 的回顧。<a class="cite" href="#r12">12</a></div>
+
+  <h3 class="sub" id="u1-3"><span class="lv b">基本</span>1-3　ROS 從哪裡來：兩條訊息路徑</h3>
+  <div class="prose"><p>切換細胞株，點選方塊看說明。紅色小字是文獻中用過的<strong>抑制劑作用點</strong>，可幫你判斷 X 可能在哪一層起作用。同一列的方塊是平行分支。</p></div>
+  <div class="controls"><div class="seg" role="group" aria-label="選擇細胞株" id="pathLine"><button aria-pressed="true" data-v="raw">RAW 264.7 × LPS</button><button aria-pressed="false" data-v="rbl">RBL-2H3 × IgE／抗原</button></div></div>
+  <div class="pathwrap">
+    <div class="card"><div class="chain" id="chain"></div></div>
+    <div class="card infopanel" id="pathInfo" aria-live="polite"></div>
+  </div>
+  <div class="grid2">
+    <div class="card raw"><h3><span class="tag raw">RAW</span>　重點</h3><ul class="tight small">
+      <li>吞噬細胞型 NADPH oxidase（NOX2）在活化時組裝到膜上，產生超氧（O₂•⁻）。<a class="cite" href="#r20">20</a></li>
+      <li>TLR 訊號使 TRAF6 移至粒線體與 ECSIT 結合，增加粒線體 ROS；此研究使用 RAW 細胞。<a class="cite" href="#r21">21</a></li>
+      <li>LPS 1 µg/mL 刺激 15 分鐘即可用流式測到 ROS 上升，DPI 10 µM 可阻斷。<a class="cite" href="#r31">31</a></li>
+      <li>NO 與 O₂•⁻ 反應形成的 ONOO⁻ 也會氧化 DCFH，所以 DCF 訊號包含活性氮的貢獻。<a class="cite" href="#r22">22</a></li>
+    </ul></div>
+    <div class="card rbl"><h3><span class="tag rbl">RBL</span>　重點</h3><ul class="tight small">
+      <li>FcεRI 交聯後的氧化爆發需要酪胺酸激酶與 PI3K 活化；DPI 可阻斷，推測主要來自 NAD(P)H oxidase。<a class="cite" href="#r7">7</a></li>
+      <li>RBL-2H3 高量表現 NOX2（gp91<sup>phox</sup>）、p22、p47、p67、p40<sup>phox</sup> 與 Rac1/2，中量表現 DUOX2，不表現 NOX1、NOX3、NOX4 與 DUOX1。<a class="cite" href="#r9">9</a></li>
+      <li>阻斷氧化爆發會使 store-operated 鈣離子流入消失，並抑制組織胺、β-hexosaminidase 與 LTC₄ 釋放。<a class="cite" href="#r7">7</a></li>
+      <li>抗原誘導的 ROS 立即出現；thapsigargin 誘導的 ROS 約延遲 2 分鐘，兩者對鈣離子與 PI3K 的依賴不同。<a class="cite" href="#r8">8</a></li>
+      <li><span class="lv a">進階</span>抑制 NADPH oxidase 也會減弱 Lyn 磷酸化，顯示兩者之間有正回饋迴路。<a class="cite" href="#r16">16</a></li>
+    </ul></div>
+  </div>
+
+  <h3 class="sub" id="u1-4"><span class="lv b">基本</span>1-4　DCFDA（DCFH-DA）探針原理與限制</h3>
+  <div class="prose"><p>DCFDA、H₂DCFDA、DCFH-DA 指的是同一種探針：2′,7′-dichlorodihydrofluorescein diacetate。它可穿過細胞膜，進入細胞後被 esterase 去乙醯化成無螢光、帶電而留在細胞內的 DCFH，再被氧化成高螢光的 DCF。<a class="cite" href="#r23">23</a><a class="cite" href="#r25">25</a> 讀取波長約為激發 485 nm／發射 535 nm<a class="cite" href="#r25">25</a>；在流式儀上使用 488 nm 雷射、約 530 nm 的 FITC 通道。<a class="cite" href="#r7">7</a><a class="cite" href="#r34">34</a></p></div>
+  <div class="card dcfh">
+    <div class="controls"><div class="seg" role="group" aria-label="探針反應步驟" id="dcfhSeg"></div></div>
+    <svg id="dcfhSvg" viewBox="0 0 820 300" role="img" aria-label="DCFH-DA 進入細胞並被氧化的步驟圖"></svg>
+    <p id="dcfhText" class="small" aria-live="polite"></p>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3><span class="lv b">基本</span>操作上的必要條件</h3><ul class="tight small">
+      <li>染色常在<strong>無血清</strong>培養基或緩衝液中進行。<a class="cite" href="#r33">33</a><a class="cite" href="#r7">7</a></li>
+      <li><strong>避光</strong>：DCFH 會光氧化（螢光假性上升），DCF 也會光漂白（螢光下降）。<a class="cite" href="#r24">24</a></li>
+      <li>濃度與時間：RAW 264.7 文獻多為 5–10 µM、20–30 分鐘<a class="cite" href="#r29">29</a><a class="cite" href="#r30">30</a><a class="cite" href="#r32">32</a>；RBL-2H3 為 5 µM、15–30 分鐘。<a class="cite" href="#r7">7</a><a class="cite" href="#r8">8</a> 套組建議起始範圍 10–50 µM。<a class="cite" href="#r25">25</a></li>
+      <li>染色後應立即分析。<a class="cite" href="#r25">25</a></li>
+    </ul></div>
+    <div class="card"><h3><span class="lv a">進階</span>DCF 不等於 H₂O₂</h3><ul class="tight small">
+      <li>DCFH 不直接與 H₂O₂ 反應，需要過渡金屬、cytochrome c 或 heme peroxidase 等參與。<a class="cite" href="#r23">23</a></li>
+      <li>多種單電子氧化物（含 ONOO⁻）都能氧化 DCFH；中間產物 DCF 自由基還會生成 O₂•⁻ 與 H₂O₂，造成訊號人為放大。<a class="cite" href="#r22">22</a><a class="cite" href="#r23">23</a></li>
+      <li>Free Radic Biol Med 編輯群認為 DCFH-DA 不能可靠地量測細胞內 H₂O₂ 或特定 ROS，較適合當作細胞整體氧化狀態的指標。<a class="cite" href="#r22">22</a></li>
+    </ul></div>
+  </div>
+  <div class="note red"><strong>結論寫法</strong>建議寫「X 前處理降低刺激所誘導的細胞內 DCF 螢光」，不要寫「X 減少 H₂O₂」或「X 抑制超氧」。若要指認來源，需搭配專一的抑制劑或探針。<a class="cite" href="#r22">22</a></div>
+
+  <h3 class="sub" id="u1-5"><span class="lv b">基本</span>1-5　螢光顯微鏡與流式細胞儀：各回答什麼問題</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>比較</th><th>螢光顯微鏡</th><th>流式細胞儀</th></tr></thead>
+    <tbody>
+      <tr><td>量測單位</td><td>影像中的一群細胞（視野）</td><td>逐顆細胞，每個條件數千到上萬個事件；套組建議每條件至少 1.5 × 10⁴ 個細胞<a class="cite" href="#r25">25</a></td></tr>
+      <tr><td>最擅長</td><td>確認訊號位於細胞內、看型態與分布、排除細胞外螢光</td><td>定量比較、看族群分布（單峰右移或雙峰）、排除碎片與團塊</td></tr>
+      <tr><td>主要偏誤來源</td><td>視野選擇、曝光設定、對焦時的光氧化</td><td>PMT 電壓變動、圈選策略、上機先後順序</td></tr>
+      <tr><td>細胞狀態</td><td>可直接在孔盤中觀察貼附細胞</td><td>需把細胞收成懸浮液</td></tr>
+      <tr><td>建議定位</td><td>代表影像與佐證</td><td>主要定量依據</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note small"><strong><span class="tag rbl">RBL</span>　時間尺度對方法選擇的影響</strong>Suzuki 等人在 RBL-2H3 以盤式螢光儀每 40 秒讀一次、連續 8–13 分鐘追蹤 DCF；流式則在抗原刺激 5 分鐘後收樣，未使用顯微鏡。<a class="cite" href="#r7">7</a> 因為訊號在數分鐘內變化，<span class="lv r">建議</span>顯微鏡拍攝要讓每一孔從加抗原到拍攝的時間一致（例如錯開加藥時間），否則先拍與後拍的孔會不可比。</div>
+</section>
+
+<!-- ================= 02 虛擬實驗台 ================= -->
+<section class="unit" id="u2">
+  <div class="unit-head"><span class="num">02</span><h2>虛擬實驗台</h2></div>
+
+  <h3 class="sub" id="u2-1"><span class="lv b">基本</span>2-1　時間軸：染劑在刺激之前還是之後？</h3>
+  <div class="prose"><p>兩株細胞最大的流程差異在<strong>染劑與刺激的先後</strong>。LPS 誘導的 ROS 需要數十分鐘到數小時，RAW 264.7 文獻多半在 LPS 刺激結束後才染色；RBL-2H3 的抗原反應在數分鐘內就達高峰，所以要<strong>先載入染劑再加抗原</strong>。點選每一段看條件與出處。</p></div>
+  <div class="card">
+    <div class="tl">
+      <div class="small"><span class="tag raw">RAW 264.7</span></div>
+      <div class="tlrow" id="tlRaw"></div>
+      <div class="small" style="margin-top:8px"><span class="tag rbl">RBL-2H3</span></div>
+      <div class="tlrow" id="tlRbl"></div>
+    </div>
+    <div class="note green small" id="tlInfo" aria-live="polite"></div>
+    <p class="small muted">方塊寬度不代表實際時間長短。綠框＝染色步驟，紅框＝刺激步驟。</p>
+  </div>
+
+  <h3 class="sub" id="u2-2"><span class="lv b">基本</span>2-2　分組設計與 24 孔盤配置</h3>
+  <div class="prose"><p>兩株細胞使用平行的 12 組設計，每組 2 孔。點選孔看處理方式與目的。孔的顏色深淺是<strong>模擬</strong>的 DCF 相對強度。</p></div>
+  <div class="controls"><div class="seg" role="group" aria-label="孔盤細胞株" id="plateLine"><button aria-pressed="true" data-v="raw">RAW 264.7</button><button aria-pressed="false" data-v="rbl">RBL-2H3</button></div></div>
+  <div class="platebox">
+    <div class="plate" id="plate" role="grid" aria-label="24 孔盤配置"></div>
+    <div class="card" id="wellInfo" aria-live="polite"></div>
+  </div>
+  <div class="tablewrap"><table id="groupTable"></table></div>
+
+  <h3 class="sub" id="u2-3"><span class="lv b">基本</span>2-3　操作步驟（文獻常見條件）</h3>
+  <p class="muted small">點開每一步看「為什麼」與「常見錯誤」。請依你們實驗室的 protocol 調整數值。</p>
+  <div class="grid2">
+    <div class="card raw"><h3><span class="tag raw">RAW 264.7</span>　LPS 模型</h3>
+      <div class="stepper">
+        <div class="step" data-n="1"><details open><summary>種細胞<span class="t">Day 0</span></summary><div class="body">
+          <p>依孔盤大小種入細胞，貼附過夜；文獻在 6 孔盤每孔約 1–2 × 10⁵ 個細胞。<a class="cite" href="#r32">32</a><a class="cite" href="#r33">33</a></p>
+          <p><span class="err">常見錯誤：</span>細胞太滿，基礎 ROS 已偏高，收細胞時也容易聚團。</p></div></details></div>
+        <div class="step" data-n="2"><details><summary>X／參考抑制劑前處理<span class="t">LPS 前 1–4 h</span></summary><div class="body">
+          <p>文獻多為 LPS 前 1 小時<a class="cite" href="#r29">29</a><a class="cite" href="#r30">30</a>，也有 4 小時。<a class="cite" href="#r32">32</a> NAC 常用 10 mM、前處理 1 小時。<a class="cite" href="#r29">29</a></p>
+          <p><span class="err">常見錯誤：</span>各組溶劑（如 DMSO）終濃度不一致。</p></div></details></div>
+        <div class="step" data-n="3"><details><summary>LPS 刺激<span class="t">15 min – 18 h</span></summary><div class="body">
+          <p>常見 1 µg/mL；文獻刺激時間有 15 分鐘<a class="cite" href="#r31">31</a>、1 小時（500 ng/mL）<a class="cite" href="#r29">29</a>、12 小時<a class="cite" href="#r32">32</a>、18 小時。<a class="cite" href="#r30">30</a><a class="cite" href="#r34">34</a></p>
+          <p><span class="why">為什麼要固定：</span>早期與晚期的 ROS 來源可能不同，時間點不固定就無法跨批次比較。<span class="lv r">建議</span>先做時間曲線再固定。</p></div></details></div>
+        <div class="step" data-n="4"><details><summary>DCFH-DA 染色<span class="t">5–10 µM，20–30 min，37 °C，避光</span></summary><div class="body">
+          <p>移除培養基，以無血清培養基稀釋的探針作用。<a class="cite" href="#r29">29</a><a class="cite" href="#r30">30</a><a class="cite" href="#r32">32</a></p>
+          <p><span class="err">常見錯誤：</span>各組染色時間不一致（先染的組螢光較強）。</p></div></details></div>
+        <div class="step" data-n="5"><details><summary>H₂O₂ 陽性對照<span class="t">染色後 10 min</span></summary><div class="body">
+          <p>文獻：DCFH-DA 50 µM 染 30 分鐘後，加 H₂O₂ 300 µM 作用 10 分鐘。<a class="cite" href="#r34">34</a> H₂O₂ 稀釋液保存性差，30% 原液約 9.8 M。<a class="cite" href="#r28">28</a></p>
+          <p><span class="err">常見錯誤：</span>在含 pyruvate 的培養基中處理；1 mM pyruvate 約 21–25 分鐘可清除 95% 的 5–200 µM H₂O₂。<a class="cite" href="#r27">27</a></p></div></details></div>
+        <div class="step" data-n="6"><details><summary>清洗後量測<span class="t">立即</span></summary><div class="body">
+          <p>PBS 清洗 2–3 次。顯微鏡：所有組使用相同曝光；流式：收細胞重懸於 PBS，避光置冰上盡快上機。<a class="cite" href="#r30">30</a><a class="cite" href="#r32">32</a></p></div></details></div>
+      </div>
+    </div>
+    <div class="card rbl"><h3><span class="tag rbl">RBL-2H3</span>　IgE／抗原模型</h3>
+      <div class="stepper">
+        <div class="step" data-n="1"><details open><summary>種細胞＋IgE 致敏<span class="t">Day 0，隔夜</span></summary><div class="body">
+          <p>Suzuki 等人：24 孔盤每孔 2 × 10⁵ 個細胞，加入抗 TNP IgE 0.1 µg/孔，37 °C 隔夜。<a class="cite" href="#r7">7</a> 其他研究以抗 DNP IgE 致敏：50 ng/mL<a class="cite" href="#r18">18</a> 或 0.2 µg/mL（脫顆粒最適條件）。<a class="cite" href="#r17">17</a></p>
+          <p><span class="why">為什麼：</span>RBL-2H3 本身不認得抗原，需先讓 IgE 結合到細胞表面的 FcεRI，抗原才能交聯受體。</p></div></details></div>
+        <div class="step" data-n="2"><details><summary>X／參考抑制劑前處理<span class="t">30 min – 24 h</span></summary><div class="body">
+          <p>文獻前處理時間差異大：萃取物 30 分鐘後再加抗原<a class="cite" href="#r37">37</a>；也有前處理 24 小時後再刺激並量 DCF。<a class="cite" href="#r38">38</a> DPI 需<strong>預培養 30 分鐘</strong>才有效，刺激前才加入則無效。<a class="cite" href="#r7">7</a> NAC 10 mM 作用 1 小時、洗掉後再刺激。<a class="cite" href="#r13">13</a></p>
+          <p><span class="lv a">進階</span>前處理後是否換液，決定了 X 在抗原刺激時是否仍存在：存在時 X 可能直接清除 ROS 或與探針作用。請在方法中寫明。</p></div></details></div>
+        <div class="step" data-n="3"><details><summary>DCFH-DA 載入<span class="t">5 µM，15–30 min，37 °C，避光</span></summary><div class="body">
+          <p>盤式讀取：5 µM、30 分鐘，清洗兩次後懸浮於 HBSS；流式：1 × 10⁶ cells/mL 於 HBSS 中，5 µM、15 分鐘，體積 450 µL。<a class="cite" href="#r7">7</a><a class="cite" href="#r8">8</a></p>
+          <p><span class="why">為什麼先染：</span>抗原刺激後 DCF 立即上升，約 5 分鐘達高峰，先刺激再染色會錯過反應。<a class="cite" href="#r7">7</a></p></div></details></div>
+        <div class="step" data-n="4"><details><summary>抗原刺激<span class="t">數分鐘</span></summary><div class="body">
+          <p>Suzuki 等人以 TNP-BSA 30 ng/mL 為標準條件：3 ng/mL 為最低有效劑量（1.4 倍），30 ng/mL 達最大反應（2.6 倍）。<a class="cite" href="#r7">7</a> 流式組在刺激 5 分鐘後收樣並立即置於冰上。<a class="cite" href="#r7">7</a><a class="cite" href="#r8">8</a></p>
+          <p><span class="err">常見錯誤：</span>各孔從加抗原到讀取的時間不一致。</p></div></details></div>
+        <div class="step" data-n="5"><details><summary>陽性對照<span class="t">與抗原同步</span></summary><div class="body">
+          <p>受體非依賴的刺激：thapsigargin 1 µM<a class="cite" href="#r8">8</a> 或 ionomycin 1 µM<a class="cite" href="#r13">13</a> 皆可使 RBL-2H3 的 DCF 上升。</p>
+          <p class="small muted">本講義未檢索到 RBL-2H3 以 H₂O₂ 作為 DCF 陽性對照的明確條件；若要使用 H₂O₂，濃度與時間需自行預實驗。</p></div></details></div>
+        <div class="step" data-n="6"><details><summary>量測<span class="t">立即</span></summary><div class="body">
+          <p>盤式螢光儀：激發 485 nm／發射 527 nm，每 40 秒讀一次；流式：激發 488 nm／發射 530 nm。<a class="cite" href="#r7">7</a></p>
+          <p><span class="lv r">建議</span>若改用顯微鏡，請以固定的「加抗原後時間」拍攝，並比較同一時間點。</p></div></details></div>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub" id="u2-4"><span class="lv b">基本</span>2-4　螢光顯微鏡模擬</h3>
+  <div class="prose"><p>切換細胞株與組別，調整曝光。試著勾選「自動曝光」，看看各組亮度會變成什麼樣子。RAW 264.7 以圓形細胞、RBL-2H3 以紡錘狀細胞示意（ATCC 描述其為類纖維母細胞型態<a class="cite" href="#r5">5</a>）。</p></div>
+  <div class="card">
+    <span class="sim-tag">模擬影像，非真實照片</span>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="顯微鏡細胞株" id="scLine"><button aria-pressed="true" data-v="raw">RAW 264.7</button><button aria-pressed="false" data-v="rbl">RBL-2H3</button></div>
+      <label for="scGroup">組別 <select id="scGroup"></select></label>
+      <div class="seg" role="group" aria-label="顯示模式" id="scMode"><button aria-pressed="true" data-v="fl">螢光（FITC）</button><button aria-pressed="false" data-v="bf">明視野</button><button aria-pressed="false" data-v="ov">疊合</button></div>
+      <label for="scExp">曝光 <input id="scExp" type="range" min="50" max="1000" step="10" value="300"> <span id="scExpV" class="mono">300 ms</span></label>
+      <label><input type="checkbox" id="scAuto"> 自動曝光</label>
+    </div>
+    <div class="scope"><canvas id="scCanvas" style="height:360px"></canvas><div class="ov" id="scOv"></div></div>
+    <div class="warnline" id="scWarn" aria-live="polite"></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3><span class="lv b">基本</span>拍攝原則</h3><ul class="tight small">
+      <li>先用最亮的組（陽性對照或刺激組）決定不飽和的曝光，再用同一設定拍所有組。</li>
+      <li>每組拍多個隨機視野，並拍對應明視野以確認細胞數。</li>
+      <li>對焦用明視野，拍攝前才打開螢光，減少 DCFH 光氧化。<a class="cite" href="#r24">24</a></li>
+    </ul></div>
+    <div class="card"><h3><span class="lv a">進階</span>無細胞孔為什麼要看</h3><p class="small">Endo 等人發現花粉萃取物在<strong>沒有細胞</strong>的情況下與 DCFH-DA 共培養 30 分鐘就會產生螢光。<a class="cite" href="#r13">13</a> Quercetin 等多酚加入常用培養基也會快速產生 H₂O₂。<a class="cite" href="#r26">26</a> 若無細胞孔有綠色背景，代表 X 本身會在細胞外造成訊號。</p></div>
+  </div>
+
+  <h3 class="sub" id="u2-5"><span class="lv b">基本</span>2-5　流式上機模擬：圈選（gating）</h3>
+  <div class="prose"><p>流式以 FSC（大致反映大小）與 SSC（反映內部顆粒與複雜度）畫散佈圖，先圈出完整的單顆細胞，再看圈內細胞的 DCF 分布。螢光通常以對數尺度顯示。<a class="cite" href="#r35">35</a> 在左圖<strong>按住拖曳</strong>畫出長方形 gate，比較圈選前後 median 與 mean 的變化。</p></div>
+  <div class="card">
+    <span class="sim-tag">模擬數據</span>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="流式細胞株" id="gtLine"><button aria-pressed="true" data-v="raw">RAW 264.7（LPS 組）</button><button aria-pressed="false" data-v="rbl">RBL-2H3（抗原組）</button></div>
+      <button class="btn" id="gateSuggest">套用建議 gate</button>
+      <button class="btn" id="gateAll">取消 gate</button>
+    </div>
+    <div class="grid2">
+      <canvas id="dotCanvas" style="height:320px;touch-action:none" aria-label="FSC 對 SSC 散佈圖，可拖曳圈選"></canvas>
+      <canvas id="gateHist" style="height:320px" aria-label="圈選前後的 DCF histogram"></canvas>
+    </div>
+    <div class="statgrid" id="gateStats"></div>
+    <p class="small muted">模擬樣品含約 16% 碎片（低 FSC、低 SSC、低螢光）與 6% 細胞團塊（高 FSC、高 SSC、螢光約為單顆細胞兩倍）。兩株細胞的散佈位置是示意，不代表真實儀器數值。</p>
+  </div>
+  <div class="note small"><strong><span class="lv a">進階</span>Doublet 排除</strong>兩顆黏在一起的細胞會被記成一個事件，螢光約加倍。可用 FSC-A 對 FSC-H 圖排除：單顆細胞的面積與高度成比例，doublet 的面積偏大。</div>
+</section>
+
+<!-- ================= 03 數據分析 ================= -->
+<section class="unit" id="u3">
+  <div class="unit-head"><span class="num">03</span><h2>數據分析</h2></div>
+
+  <h3 class="sub" id="u3-1"><span class="lv b">基本</span>3-1　MFI 與三種「平均」</h3>
+  <div class="grid2">
+    <div class="card"><h3>Histogram 的兩個軸</h3>
+      <p class="small"><strong>X 軸</strong>：每顆細胞的 DCF 螢光強度（FITC 通道，相對單位 a.u.），通常用對數尺度。數值會隨 PMT 電壓與儀器改變。</p>
+      <p class="small"><strong>Y 軸</strong>：Count（事件數），或 % of Max（每條曲線最高點設為 100%）。各組事件數不同時，用 % of Max 疊圖才能比較形狀與位置。</p>
+      <p class="small"><strong>MFI 不是 Y 軸</strong>，而是由 X 軸分布算出的一個統計值，會出現在整理後長條圖的 Y 軸。</p>
+    </div>
+    <div class="card"><h3>三種「平均」的定義</h3>
+      <div class="formula">算術平均 = (x₁ + … + xₙ) ÷ n<br>幾何平均 = 10^[(log x₁ + … + log xₙ) ÷ n]<br>中位數 = 排序後正中間的值</div>
+      <p class="small">流式螢光呈偏斜分布，少數極亮細胞會把算術平均拉高；中位數對離群值最穩健。「MFI」可能指三者中任一種，報告時必須寫明。<a class="cite" href="#r35">35</a><a class="cite" href="#r36">36</a></p>
+    </div>
+  </div>
+  <div class="card">
+    <label for="avgIn" class="small muted">自己試試：輸入螢光值（逗號或空白分隔，需大於 0）<input id="avgIn" class="avg-in" value="100, 150, 200, 300, 2000"></label>
+    <div class="out" id="avgOut" aria-live="polite"></div>
+  </div>
+
+  <h3 class="sub" id="u3-2"><span class="lv b">基本</span>3-2　Histogram 疊圖與抑制率</h3>
+  <div class="formula">Fold change = MFI(處理組) ÷ MFI(未刺激對照)<br>抑制率 (%) = [MFI(刺激) − MFI(X＋刺激)] ÷ [MFI(刺激) − MFI(未刺激對照)] × 100<br><span class="muted">ΔMFI（進階）= MFI(染色) − MFI(同處理但未染色)　→ X 具自體螢光時使用</span></div>
+  <div class="card">
+    <span class="sim-tag">模擬數據</span>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="細胞株" id="hsLine"><button aria-pressed="true" data-v="raw">RAW 264.7</button><button aria-pressed="false" data-v="rbl">RBL-2H3</button></div>
+      <label for="hsDose">X 濃度 <select id="hsDose"><option value="xL">低</option><option value="xM" selected>中</option><option value="xH">高</option></select></label>
+      <div class="seg" role="group" aria-label="Y 軸" id="hsY"><button aria-pressed="true" data-v="count">Y：Count</button><button aria-pressed="false" data-v="max">Y：% of Max</button></div>
+      <label><input type="checkbox" id="hsRef" checked> 顯示參考抑制劑</label>
+      <button class="btn" id="hsMarker">以對照組重設 marker（約 2% 陽性）</button>
+    </div>
+    <canvas id="hsCanvas" style="height:360px;touch-action:none" aria-label="DCF histogram 疊圖，可拖曳 marker"></canvas>
+    <p class="small muted">拖曳圖上的虛線 marker（M2）可改變 %positive 的界線。</p>
+    <div class="tablewrap"><table id="hsTable"></table></div>
+    <div class="note green small" id="hsExplain" aria-live="polite"></div>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>指標</th><th>適用情境</th><th>限制</th></tr></thead>
+    <tbody>
+      <tr><td><strong>MFI</strong>（median 或 gMFI）</td><td class="small">整個族群一起右移的單峰分布</td><td class="small">相對單位，不同天或不同電壓設定不能直接比較<a class="cite" href="#r36">36</a></td></tr>
+      <tr><td><strong>Fold change</strong></td><td class="small">合併多次獨立實驗；套組說明建議以 MFI 計算相對對照的倍數<a class="cite" href="#r25">25</a></td><td class="small">對照組不穩定時，所有倍數一起浮動</td></tr>
+      <tr><td><strong>%positive</strong></td><td class="small">雙峰：只有部分細胞反應時，同時報告各族群比例<a class="cite" href="#r36">36</a></td><td class="small">對 marker 位置敏感；整群右移時容易接近 100% 而飽和</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 class="sub" id="u3-3"><span class="lv a">進階</span>3-3　顯微影像定量</h3>
+  <div class="grid2">
+    <div class="card"><h3><span class="lv r">建議</span>流程</h3><ol class="tight small">
+      <li>所有組使用相同曝光與增益，輸出未壓縮的原始影像。</li>
+      <li>在 ImageJ／Fiji 中量測每個視野的平均螢光強度，扣除無細胞區域的背景。</li>
+      <li>以明視野或核染計數細胞，換算成「每細胞平均強度」。</li>
+      <li>每組取多個隨機視野，以視野為技術重複、以實驗天數為生物重複。</li>
+    </ol></div>
+    <div class="card"><h3>解讀的定位</h3><p class="small">影像定量受視野選擇、曝光與細胞密度影響大，適合作為流式結果的佐證。若兩種方法方向一致（X 降低 DCF），結論較可靠；若方向不一致，先檢查曝光是否飽和、X 是否具自體螢光、以及細胞數是否改變。</p></div>
+  </div>
+
+  <h3 class="sub" id="u3-4"><span class="lv b">基本</span>3-4　多次獨立實驗的整理圖</h3>
+  <div class="prose"><p>單次 histogram 是代表圖；結論要靠多次獨立實驗。下方模擬三天的實驗，第二、三天的 PMT 電壓不同。切換 Y 軸，比較原始 MFI 與 fold change 的差別。</p></div>
+  <div class="card">
+    <span class="sim-tag">模擬數據（n = 3 次獨立實驗）</span>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="整理圖細胞株" id="barLine"><button aria-pressed="true" data-v="raw">RAW 264.7</button><button aria-pressed="false" data-v="rbl">RBL-2H3</button></div>
+      <div class="seg" role="group" aria-label="整理圖 Y 軸" id="barY"><button aria-pressed="false" data-v="raw">Median MFI</button><button aria-pressed="true" data-v="fold">Fold change</button><button aria-pressed="false" data-v="inh">抑制率</button></div>
+    </div>
+    <canvas id="barCanvas" style="height:340px"></canvas>
+    <div class="note green small" id="barExplain" aria-live="polite"></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3><span class="lv b">基本</span>判讀順序檢查表</h3><ol class="tight small">
+      <li>未染色組最低，未刺激對照高於未染色組：探針有進入細胞。</li>
+      <li>陽性對照明顯上升：探針與儀器正常。</li>
+      <li>刺激組高於未刺激對照：模型成立。</li>
+      <li>參考抑制劑＋刺激低於刺激組：模型可被抑制。</li>
+      <li>無細胞孔與 X 未染色組沒有明顯訊號：排除假訊號。</li>
+      <li>以上都成立，且 X 濃度不影響存活率，才判讀 X 組。</li>
+    </ol></div>
+    <div class="card"><h3><span class="lv r">建議</span>統計與報告</h3><p class="small">以每次實驗的 fold change 為一筆資料，報告 mean ± SD（或 SEM，須註明）與獨立實驗次數；多組比較常用 one-way ANOVA 搭配事後檢定。方法中寫明：MFI 的種類、圈選策略、marker 規則、事件數、儀器、通道、染劑濃度與時間，以及 X 在刺激時是否仍存在。</p></div>
+  </div>
+
+  <h3 class="sub" id="u3-5"><span class="lv b">基本</span>3-5　互動測驗</h3>
+  <div class="scorebar"><span id="qScore" class="mono">已作答 0 / 0，答對 0</span><button class="btn" id="qReset">重新作答</button></div>
+  <div class="quiz" id="quizBox"></div>
+</section>
+
+<!-- ================= 04 注意事項 ================= -->
+<section class="unit" id="u4">
+  <div class="unit-head"><span class="num">04</span><h2>注意事項</h2></div>
+  <div class="grid2">
+    <div class="card"><h3><span class="lv b">基本</span>探針與光</h3><ul class="tight small">
+      <li>DCFH 會光氧化、DCF 會光漂白，全程避光。<a class="cite" href="#r24">24</a></li>
+      <li>DCF 訊號反映整體氧化程度，不能指認 ROS 種類。<a class="cite" href="#r22">22</a></li>
+      <li>染色後立即分析。<a class="cite" href="#r25">25</a> 流式上機順序造成的時間差要盡量縮小。</li>
+    </ul></div>
+    <div class="card"><h3><span class="lv b">基本</span>X 本身造成的假訊號</h3><ul class="tight small">
+      <li>萃取物可能在無細胞時氧化 DCFH-DA。<a class="cite" href="#r13">13</a></li>
+      <li>多酚（如 quercetin）加入常用培養基會快速產生 H₂O₂。<a class="cite" href="#r26">26</a> Ascorbate 也有類似現象。<a class="cite" href="#r39">39</a></li>
+      <li>有顏色或螢光的萃取物會增加 FITC 通道背景，需做「X 未染色」組。</li>
+      <li>X 具毒性時 DCF 下降不代表抑制，須對照存活率。<a class="cite" href="#r32">32</a></li>
+    </ul></div>
+    <div class="card"><h3><span class="lv b">基本</span><span class="tag raw">RAW</span>　特有注意</h3><ul class="tight small">
+      <li>繼代數超過 30 代反應性可能改變，紀錄中寫下繼代數。<a class="cite" href="#r3">3</a></li>
+      <li>LPS 刺激時間決定看到的是早期 NOX 活化還是後期累積的 ROS。<a class="cite" href="#r31">31</a><a class="cite" href="#r30">30</a></li>
+      <li>H₂O₂ 陽性對照請在不含 pyruvate 的溶液中進行。<a class="cite" href="#r27">27</a></li>
+    </ul></div>
+    <div class="card"><h3><span class="lv b">基本</span><span class="tag rbl">RBL</span>　特有注意</h3><ul class="tight small">
+      <li>倍增時間約 50–60 小時，種盤密度與致敏時間要提早規劃。<a class="cite" href="#r6">6</a></li>
+      <li>抗原誘導的 DCF 在數分鐘內變化，每孔從加抗原到讀取的時間必須一致。<a class="cite" href="#r7">7</a></li>
+      <li>DPI 需預培養 30 分鐘才有效。<a class="cite" href="#r7">7</a></li>
+      <li>Rotenone 與 L-NMMA 對抗原誘導的 DCF 氧化沒有顯著抑制。<a class="cite" href="#r7">7</a></li>
+      <li>Cellosaurus 註記 compound 48/80 對此株具毒性<a class="cite" href="#r6">6</a>；文獻中仍有以 compound 48/80 刺激 RBL-2H3 的研究<a class="cite" href="#r37">37</a><a class="cite" href="#r38">38</a>，若採用需同時評估存活率。</li>
+    </ul></div>
+  </div>
+  <div class="note red"><strong><span class="lv a">進階</span>ROS 下降不等於全面抗發炎</strong>Chen 等人在小鼠肥大細胞中發現，rutin 與綠原酸能降低抗原誘導的 ROS 並抑制組織胺釋放，卻同時<strong>增加</strong>多種細胞激素的 mRNA。<a class="cite" href="#r19">19</a> 在 RBL-2H3 中，以 ebselen 選擇性清除 H₂O₂ 可抑制 LTC₄ 分泌，但不影響脫顆粒。<a class="cite" href="#r7">7</a> 因此 DCF 結果應搭配功能讀值（RAW：NO、細胞激素；RBL：β-hexosaminidase、組織胺）一起解讀。</div>
+  <div class="note green small"><strong>RBL-2H3 文獻中 X 類物質的例子</strong>Phloretin 與 biochanin A 以劑量依賴方式抑制 IgE／抗原刺激 RBL-2H3 的 ROS 生成與 β-hexosaminidase 釋放<a class="cite" href="#r14">14</a>，文獻使用的 phloretin 濃度為 12.5、25、50 µM。<a class="cite" href="#r15">15</a></div>
+</section>
+
+<!-- ================= 05 專有名詞 ================= -->
+<section class="unit" id="u5">
+  <div class="unit-head"><span class="num">05</span><h2>專有名詞</h2></div>
+  <p class="small muted">有縮寫者依縮寫字母排序在前；沒有通用縮寫者以「—」標示，依英文全名排在後段。標「（暫譯）」表示目前沒有統一的中文譯名。</p>
+  <div class="glos-tools"><label for="glosQ" class="small">搜尋 <input id="glosQ" type="search" placeholder="輸入縮寫、英文或中文"></label><span class="small muted" id="glosN"></span></div>
+  <div class="tablewrap"><table id="glosTable"><thead><tr><th>縮寫</th><th>英文全名</th><th>台灣繁體中文譯名</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<!-- ================= 06 參考文獻 ================= -->
+<section class="unit refs" id="u6">
+  <div class="unit-head"><span class="num">06</span><h2>參考文獻</h2></div>
+  <ol>
+    <li id="r1">ATCC. RAW 264.7 (TIB-71) product page. <a href="https://www.atcc.org/products/tib-71">atcc.org/products/tib-71</a></li>
+    <li id="r2">Raschke WC, Baird SM, Ralph P, Nakoinz I. Functional macrophage cell lines transformed by Abelson leukemia virus. <i>Cell</i> 1978;15:261–267. <a href="https://doi.org/10.1016/0092-8674(78)90101-0">doi:10.1016/0092-8674(78)90101-0</a></li>
+    <li id="r3">Taciak B, et al. Evaluation of phenotypic and functional stability of RAW 264.7 cell line through serial passages. <i>PLoS One</i> 2018;13:e0198943. <a href="https://doi.org/10.1371/journal.pone.0198943">doi:10.1371/journal.pone.0198943</a></li>
+    <li id="r4">Cellosaurus. RAW 264.7 (CVCL_0493). <a href="https://www.cellosaurus.org/CVCL_0493">cellosaurus.org/CVCL_0493</a></li>
+    <li id="r5">ATCC. RBL-2H3 (CRL-2256) product page. <a href="https://www.atcc.org/products/crl-2256">atcc.org/products/crl-2256</a></li>
+    <li id="r6">Cellosaurus. RBL-2H3 (CVCL_0591). <a href="https://www.cellosaurus.org/CVCL_0591">cellosaurus.org/CVCL_0591</a></li>
+    <li id="r7">Suzuki Y, Yoshimaru T, Matsui T, Inoue T, Niide O, Nunomura S, Ra C. FcεRI signaling of mast cells activates intracellular production of hydrogen peroxide: role in the regulation of calcium signals. <i>J Immunol</i> 2003;171:6119–6127. <a href="https://doi.org/10.4049/jimmunol.171.11.6119">doi:10.4049/jimmunol.171.11.6119</a></li>
+    <li id="r8">Inoue T, Suzuki Y, Yoshimaru T, Ra C. Reactive oxygen species produced up- or downstream of calcium influx regulate proinflammatory mediator release from mast cells: role of NADPH oxidase and mitochondria. <i>Biochim Biophys Acta</i> 2008;1783:789–802. <a href="https://doi.org/10.1016/j.bbamcr.2007.12.004">doi:10.1016/j.bbamcr.2007.12.004</a></li>
+    <li id="r9">Li ZY, Jiang WY, Cui ZJ. An essential role of NAD(P)H oxidase 2 in UVA-induced calcium oscillations in mast cells. <i>Photochem Photobiol Sci</i> 2015;14:414–428. <a href="https://doi.org/10.1039/C4PP00304G">doi:10.1039/C4PP00304G</a></li>
+    <li id="r10">Matsui T, et al. Diphenyleneiodonium prevents reactive oxygen species generation, tyrosine phosphorylation, and histamine release in RBL-2H3 mast cells. <i>Biochem Biophys Res Commun</i> 2000;276:742–748. <a href="https://doi.org/10.1006/bbrc.2000.3545">doi:10.1006/bbrc.2000.3545</a></li>
+    <li id="r11">Yoshimaru T, Suzuki Y, Matsui T, et al. Blockade of superoxide generation prevents high-affinity immunoglobulin E receptor-mediated release of allergic mediators by rat mast cell line and human basophils. <i>Clin Exp Allergy</i> 2002;32:612–618. <a href="https://doi.org/10.1046/j.0954-7894.2002.01263.x">doi:10.1046/j.0954-7894.2002.01263.x</a></li>
+    <li id="r12">Swindle EJ, Metcalfe DD. The role of reactive oxygen species and nitric oxide in mast cell-dependent inflammatory processes. <i>Immunol Rev</i> 2007;217:186–205. <a href="https://doi.org/10.1111/j.1600-065X.2007.00513.x">doi:10.1111/j.1600-065X.2007.00513.x</a></li>
+    <li id="r13">Endo S, Hochman DJ, Midoro-Horiuti T, Goldblum RM, Brooks EG. Mountain cedar pollen induces IgE-independent mast cell degranulation, IL-4 production, and intracellular reactive oxygen species generation. <i>Cell Immunol</i> 2011;271:488–495. <a href="https://doi.org/10.1016/j.cellimm.2011.08.019">doi:10.1016/j.cellimm.2011.08.019</a></li>
+    <li id="r14">Chung MJ, Sohng JK, Choi DJ, Park YI. Inhibitory effect of phloretin and biochanin A on IgE-mediated allergic responses in rat basophilic leukemia RBL-2H3 cells. <i>Life Sci</i> 2013;93:401–408. <a href="https://doi.org/10.1016/j.lfs.2013.07.019">doi:10.1016/j.lfs.2013.07.019</a></li>
+    <li id="r15">［內容描述］Phloretin 抗發炎與抗癌活性回顧，Table 1 之 RBL-2H3 條目。<i>Molecules</i> 2019;24:278. <a href="https://doi.org/10.3390/molecules24020278">doi:10.3390/molecules24020278</a></li>
+    <li id="r16">Itoh T, et al. Molecular hydrogen suppresses FcεRI-mediated signal transduction and prevents degranulation of mast cells. <i>Biochem Biophys Res Commun</i> 2009;389:651–656. <a href="https://doi.org/10.1016/j.bbrc.2009.09.047">doi:10.1016/j.bbrc.2009.09.047</a></li>
+    <li id="r17">Inhibition of the IgE-mediated activation of RBL-2H3 cells by TIPP, a novel thymic immunosuppressive pentapeptide. <i>Int J Mol Sci</i> 2015;16:2252–2268. <a href="https://doi.org/10.3390/ijms16012252">doi:10.3390/ijms16012252</a></li>
+    <li id="r18">Systematic comparisons of various markers for mast cell activation in RBL-2H3 cells. <i>Immunol Res</i> 2023. <a href="https://doi.org/10.1007/s12026-023-09438-5">doi:10.1007/s12026-023-09438-5</a></li>
+    <li id="r19">Chen SS, Gong J, Liu FT, Mohammed U. Naturally occurring polyphenolic antioxidants modulate IgE-mediated mast cell activation. <i>Immunology</i> 2000;100:471–480. <a href="https://doi.org/10.1046/j.1365-2567.2000.00045.x">doi:10.1046/j.1365-2567.2000.00045.x</a></li>
+    <li id="r20">Nauseef WM. Biological roles for the NOX family NADPH oxidases. <i>J Biol Chem</i> 2008;283:16961–16965. <a href="https://doi.org/10.1074/jbc.R700045200">doi:10.1074/jbc.R700045200</a></li>
+    <li id="r21">West AP, et al. TLR signalling augments macrophage bactericidal activity through mitochondrial ROS. <i>Nature</i> 2011;472:476–480. <a href="https://doi.org/10.1038/nature09973">doi:10.1038/nature09973</a></li>
+    <li id="r22">Kalyanaraman B, et al. Measuring reactive oxygen and nitrogen species with fluorescent probes: challenges and limitations. <i>Free Radic Biol Med</i> 2012;52:1–6. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3911769">PMC3911769</a></li>
+    <li id="r23">Dikalov SI, Harrison DG. Methods for detection of mitochondrial and cellular reactive oxygen species. <i>Antioxid Redox Signal</i> 2014;20:372–382. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3887411">PMC3887411</a></li>
+    <li id="r24"><i>J Mol Med</i> 2013 review on ROS measurement and fluorescent indicators. <a href="https://doi.org/10.1007/s00109-013-1067-4">doi:10.1007/s00109-013-1067-4</a></li>
+    <li id="r25">Abcam. DCFDA / H2DCFDA Cellular ROS Assay Kit (ab113851) protocol. <a href="https://www.abcam.com/DCFDA--H2DCFDA-Cellular-Reactive-Oxygen-Species-Detection-Assay-Kit-ab113851.html">abcam.com</a></li>
+    <li id="r26">Long LH, Clement MV, Halliwell B. Artifacts in cell culture: rapid generation of hydrogen peroxide on addition of (−)-epigallocatechin, (−)-epigallocatechin gallate, (+)-catechin, and quercetin to commonly used cell culture media. <i>Biochem Biophys Res Commun</i> 2000;273:50–53. <a href="https://doi.org/10.1006/bbrc.2000.2895">doi:10.1006/bbrc.2000.2895</a></li>
+    <li id="r27">Guarino VA, et al. Reaction rate of pyruvate and hydrogen peroxide: assessing antioxidant capacity of pyruvate under biological conditions. <i>Sci Rep</i> 2019;9:19568. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6925109">PMC6925109</a></li>
+    <li id="r28">Merck/Sigma-Aldrich. Hydrogen peroxide solution 30% (H1009), product FAQ. <a href="https://www.merckmillipore.com/AE/en/product/sigma/h1009">merckmillipore.com</a></li>
+    <li id="r29">Effects of spermidine on LPS-induced ROS production in RAW 264.7 macrophages. <i>Biomol Ther</i> 26(2):146–156. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5839493">PMC5839493</a></li>
+    <li id="r30">SNAH and LPS-induced ROS in RAW 264.7 cells. <i>Molecules</i> 2020;25:4089. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7570554">PMC7570554</a></li>
+    <li id="r31">Compound C blocks LPS induced ROS–NFκB signaling. <i>PLoS One</i> 2014;9:e86881. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3901729">PMC3901729</a></li>
+    <li id="r32">Flavonols (fisetin, quercetin, myricetin) in LPS-induced RAW264.7 cells. <i>Curr Res Food Sci</i> 2022;5:1176–1184. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9356238">PMC9356238</a></li>
+    <li id="r33">Tang J, Diao P, Shu X, Li L, Xiong L. Quercetin and quercitrin attenuates the inflammatory response and oxidative stress in LPS-induced RAW264.7 cells. <i>Biomed Res Int</i> 2019:7039802. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6855062">PMC6855062</a></li>
+    <li id="r34">Oridonin protects LPS-induced acute lung injury by modulating Nrf2-mediated oxidative stress and Nrf2-independent NLRP3 and NF-κB pathways. <i>Cell Commun Signal</i> 2019. <a href="https://biosignaling.biomedcentral.com/articles/10.1186/s12964-019-0366-y">doi:10.1186/s12964-019-0366-y</a></li>
+    <li id="r35">UW Carbone Cancer Center Flow Lab. Data Analysis seminar I (2018). <a href="https://cancer.wisc.edu/research/wp-content/uploads/2018/12/Data-Analysis-with-Alex-I_Final.pdf">cancer.wisc.edu (PDF)</a></li>
+    <li id="r36">Sanguine Bio. Understanding MFI in flow cytometry. <a href="https://sanguinebio.com/pbmc-basics/understanding-mfi-in-the-context-of-facs-data/">sanguinebio.com</a></li>
+    <li id="r37">［內容描述］Gt-EE 萃取物於 RBL-2H3 的抗過敏研究（MTT；IgE／DNP-HSA、PMA／A23187、compound 48/80 模型）。<i>Plants</i> 2022;11:2540. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9571866">PMC9571866</a></li>
+    <li id="r38">［內容描述］TCS 前處理 24 h 對 compound 48/80 刺激 RBL-2H3 之 DCF 螢光的影響。<i>Antioxidants</i> 2021;10:513. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8064450">PMC8064450</a></li>
+    <li id="r39">Halliwell B, Clement MV, Ramalingam J, Long LH. Hydrogen peroxide. Ubiquitous in cell culture and in vivo? <i>IUBMB Life</i> 2000;50:251–257.</li>
+  </ol>
+</section>
+</main>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const LOG10=Math.log10;
+const C=n=>`<a class="cite" href="#r${n}">${n}</a>`;
+const fmt=(v,d=0)=>Number(v).toLocaleString("en-US",{maximumFractionDigits:d,minimumFractionDigits:d});
+function rng(seed){let a=seed>>>0;return function(){a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
+function gauss(r){let u=0;while(u===0)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function hexA(c,a){if(c&&c.startsWith("#")){let h=c.slice(1);if(h.length===3)h=h.split("").map(x=>x+x).join("");const n=parseInt(h,16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}return c;}
+function setup(cv){const dpr=window.devicePixelRatio||1;const w=cv.clientWidth,h=cv.clientHeight;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);const ctx=cv.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);return{ctx,w,h};}
+function segInit(id,cb){const el=$(id);el.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));cb(b.dataset.v);});}
+const segVal=id=>$(id+' button[aria-pressed="true"]').dataset.v;
+
+/* ======================= GROUP DATA (fold values are SIMULATED) ======================= */
+const LINES={raw:{name:"RAW 264.7",stim:"LPS"},rbl:{name:"RBL-2H3",stim:"抗原"}};
+const GROUPS={
+raw:[
+ {k:"unst",name:"未染色",f:.06,col:"--c-unst",tr:"細胞＋溶劑，不加 DCFH-DA",why:"測細胞自體螢光；用來設定 PMT 電壓",lv:"b"},
+ {k:"veh",name:"未刺激對照",f:1,col:"--c-ctrl",tr:"溶劑＋DCFH-DA，不加 LPS",why:"基礎 ROS；fold change 的分母；%positive marker 的依據",lv:"b"},
+ {k:"pos",name:"H₂O₂ 陽性對照",f:4.5,col:"--c-pos",tr:"先染 DCFH-DA，再加 H₂O₂ 300 µM 作用 10 min"+C(34),why:"確認探針與量測系統有反應；此組沒上升，問題在染劑或儀器",lv:"b"},
+ {k:"stim",name:"LPS",f:2.3,col:"--c-stim",tr:"溶劑前處理 → LPS（如 1 µg/mL）",why:"模型組：決定可被抑制的最大訊號",lv:"b"},
+ {k:"ref",name:"NAC＋LPS",f:1.25,col:"--c-ref",tr:"NAC 10 mM 前處理 1 h → LPS"+C(29),why:"參考抑制劑：證明此模型可以被抑制",lv:"b"},
+ {k:"ref2",name:"DPI＋LPS",f:1.4,col:"--c-ref2",tr:"DPI 10 µM → LPS（文獻為 LPS 15 min 的早期 ROS）"+C(31),why:"檢查訊號是否依賴 flavoenzyme（如 NADPH oxidase）",lv:"a"},
+ {k:"xL",name:"X 低＋LPS",f:2.05,col:"--c-s1",tr:"X 低濃度前處理 → LPS",why:"主要實驗組（劑量反應）",lv:"b"},
+ {k:"xM",name:"X 中＋LPS",f:1.7,col:"--c-s2",tr:"X 中濃度前處理 → LPS",why:"主要實驗組（劑量反應）",lv:"b"},
+ {k:"xH",name:"X 高＋LPS",f:1.35,col:"--c-s3",tr:"X 最高無毒濃度前處理 → LPS",why:"主要實驗組；最高濃度須先經存活試驗確認",lv:"b"},
+ {k:"xOnly",name:"X 高單獨",f:1.05,col:"--c-xo",tr:"X 最高濃度，不加 LPS",why:"排除 X 本身就改變基礎 ROS",lv:"b"},
+ {k:"xUnst",name:"X 高未染色",f:.14,auto:1,col:"--c-xu",tr:"X 最高濃度＋LPS，不加 DCFH-DA",why:"檢查 X 的自體螢光是否落在 FITC 通道",lv:"a"},
+ {k:"free",name:"無細胞孔",f:0,free:1,col:"--c-unst",tr:"不種細胞：培養基＋X 最高濃度＋DCFH-DA",why:"檢查 X 是否在細胞外氧化探針"+C(13)+C(26),lv:"a"}
+],
+rbl:[
+ {k:"unst",name:"未染色",f:.06,col:"--c-unst",tr:"IgE 致敏細胞＋溶劑，不加 DCFH-DA",why:"測細胞自體螢光；用來設定 PMT 電壓",lv:"b"},
+ {k:"veh",name:"IgE 致敏、未加抗原",f:1,col:"--c-ctrl",tr:"IgE 致敏＋溶劑＋DCFH-DA，以緩衝液代替抗原",why:"基礎 ROS；fold change 的分母；%positive marker 的依據",lv:"b"},
+ {k:"pos",name:"Thapsigargin 陽性對照",f:3.2,col:"--c-pos",tr:"Thapsigargin 1 µM"+C(8)+"（或 ionomycin 1 µM"+C(13)+"）",why:"受體非依賴的刺激；確認探針與量測系統有反應",lv:"b"},
+ {k:"stim",name:"IgE＋抗原",f:2.4,col:"--c-stim",tr:"溶劑前處理 → 抗原（如 TNP-BSA 30 ng/mL"+C(7)+"）",why:"模型組：決定可被抑制的最大訊號",lv:"b"},
+ {k:"ref",name:"DPI＋抗原",f:1.35,col:"--c-ref",tr:"DPI 預培養 30 min（≥ 11 µM 有效，100 µM 約抑制 80%）→ 抗原"+C(7),why:"參考抑制劑：訊號依賴 NAD(P)H oxidase 類 flavoenzyme",lv:"b"},
+ {k:"ref2",name:"NAC＋抗原",f:1.45,col:"--c-ref2",tr:"NAC 10 mM 1 h，洗掉後刺激（文獻刺激物為花粉萃取物）"+C(13),why:"非專一抗氧化劑對照",lv:"a"},
+ {k:"xL",name:"X 低＋抗原",f:2.15,col:"--c-s1",tr:"X 低濃度前處理 → 抗原",why:"主要實驗組（劑量反應）",lv:"b"},
+ {k:"xM",name:"X 中＋抗原",f:1.75,col:"--c-s2",tr:"X 中濃度前處理 → 抗原",why:"主要實驗組（劑量反應）",lv:"b"},
+ {k:"xH",name:"X 高＋抗原",f:1.35,col:"--c-s3",tr:"X 最高無毒濃度前處理 → 抗原",why:"主要實驗組；最高濃度須先經存活試驗確認",lv:"b"},
+ {k:"xOnly",name:"X 高單獨",f:1.0,col:"--c-xo",tr:"IgE 致敏＋X 最高濃度，不加抗原",why:"排除 X 本身就改變基礎 ROS",lv:"b"},
+ {k:"xUnst",name:"X 高未染色",f:.14,auto:1,col:"--c-xu",tr:"X 最高濃度＋抗原，不加 DCFH-DA",why:"檢查 X 的自體螢光是否落在 FITC 通道",lv:"a"},
+ {k:"free",name:"無細胞孔",f:0,free:1,col:"--c-unst",tr:"不種細胞：緩衝液＋X 最高濃度＋DCFH-DA",why:"檢查 X 是否在細胞外氧化探針"+C(13)+C(26),lv:"a"}
+]};
+const G=(line,k)=>GROUPS[line].find(g=>g.k===k);
+const CTRL=2.30;
+function muOf(g){if(g.k==="unst")return 1.15;if(g.auto)return 1.45;return CTRL+LOG10(g.f);}
+function sample(g,n,seed){const r=rng(seed),a=new Float64Array(n);const mu=muOf(g),s=g.k==="unst"?.22:.26;for(let i=0;i<n;i++)a[i]=mu+s*gauss(r);return a;}
+function quant(sorted,q){const i=(sorted.length-1)*q,lo=Math.floor(i),hi=Math.ceil(i);return sorted[lo]+(sorted[hi]-sorted[lo])*(i-lo);}
+function stats(a,marker){const s=Float64Array.from(a).sort();let sl=0,sx=0,pos=0;for(const v of a){sl+=v;sx+=Math.pow(10,v);if(v>marker)pos++;}
+  return{n:a.length,median:Math.pow(10,quant(s,.5)),gmean:Math.pow(10,sl/a.length),mean:sx/a.length,pos:100*pos/a.length,sorted:s};}
+
+/* ======================= HISTOGRAM RENDERER ======================= */
+const SUP=["⁰","¹","²","³","⁴","⁵"];
+function drawHist(cv,sets,o){
+  const{ctx,w,h}=setup(cv);const ink=css("--ink"),muted=css("--muted"),line=css("--line");
+  const m={l:o.compact?44:58,r:14,t:16,b:o.compact?32:46};const pw=w-m.l-m.r,ph=h-m.t-m.b;
+  ctx.clearRect(0,0,w,h);ctx.font=(o.compact?"10px ":"12px ")+css("--body");
+  const bins=o.compact?90:150,xmin=0,xmax=5;
+  const toX=v=>m.l+pw*(v-xmin)/(xmax-xmin);
+  const hists=sets.map(S=>{const c=new Float64Array(bins);for(const v of S.data){let f=(v-xmin)/(xmax-xmin);if(f<0)f=0;if(f>=1)f=.99999;c[Math.floor(f*bins)]++;}
+    const out=new Float64Array(bins);const k=[1,4,6,4,1];for(let i=0;i<bins;i++){let s=0,ws=0;for(let j=-2;j<=2;j++){const t=i+j;if(t>=0&&t<bins){s+=c[t]*k[j+2];ws+=k[j+2];}}out[i]=s/ws;}
+    if(o.y==="max"){const mx=Math.max(...out)||1;return out.map(x=>100*x/mx);}return out;});
+  let ymax=o.y==="max"?100:Math.max(1,...hists.map(hh=>Math.max(...hh)))*1.1;
+  const nice=v=>{const p=Math.pow(10,Math.floor(LOG10(v)));const f=v/p;return(f<=1?1:f<=2?2:f<=5?5:10)*p;};
+  const ystep=o.y==="max"?25:nice(ymax/4);if(o.y!=="max")ymax=Math.ceil(ymax/ystep)*ystep;
+  const toY=v=>m.t+ph-ph*v/ymax;
+  ctx.strokeStyle=line;ctx.lineWidth=1;ctx.fillStyle=muted;ctx.textAlign="right";ctx.textBaseline="middle";
+  for(let y=0;y<=ymax+1e-9;y+=ystep){const yy=Math.round(toY(y))+.5;ctx.beginPath();ctx.moveTo(m.l,yy);ctx.lineTo(m.l+pw,yy);ctx.stroke();ctx.fillText(fmt(y),m.l-6,yy);}
+  ctx.textAlign="center";ctx.textBaseline="top";
+  for(let d=xmin;d<=xmax;d++){const xx=Math.round(toX(d))+.5;ctx.strokeStyle=line;ctx.beginPath();ctx.moveTo(xx,m.t+ph);ctx.lineTo(xx,m.t+ph+5);ctx.stroke();ctx.fillText("10"+SUP[d],xx,m.t+ph+7);
+    if(d<xmax)for(let k=2;k<10;k++){const mx=Math.round(toX(d+LOG10(k)))+.5;ctx.beginPath();ctx.moveTo(mx,m.t+ph);ctx.lineTo(mx,m.t+ph+3);ctx.stroke();}}
+  ctx.strokeStyle=ink;ctx.beginPath();ctx.moveTo(m.l,m.t);ctx.lineTo(m.l,m.t+ph);ctx.lineTo(m.l+pw,m.t+ph);ctx.stroke();
+  if(!o.compact){ctx.fillStyle=ink;ctx.fillText("DCF 螢光強度（FITC，對數尺度，a.u.）",m.l+pw/2,h-18);
+    ctx.save();ctx.translate(14,m.t+ph/2);ctx.rotate(-Math.PI/2);ctx.textBaseline="middle";ctx.fillText(o.y==="max"?"% of Max":"Count（事件數）",0,0);ctx.restore();}
+  sets.forEach((S,i)=>{const hh=hists[i];const col=css(S.col)||S.col;const bw=pw/bins;
+    ctx.beginPath();ctx.moveTo(m.l,toY(0));for(let b=0;b<bins;b++){const x0=m.l+bw*b;ctx.lineTo(x0,toY(hh[b]));ctx.lineTo(x0+bw,toY(hh[b]));}ctx.lineTo(m.l+pw,toY(0));ctx.closePath();
+    ctx.fillStyle=hexA(col,S.fill==null?.14:S.fill);ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=S.bold?2.2:1.6;ctx.setLineDash(S.dash?[5,4]:[]);ctx.stroke();ctx.setLineDash([]);});
+  if(o.marker!=null){const mx=toX(o.marker);ctx.strokeStyle=ink;ctx.setLineDash([6,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(mx,m.t);ctx.lineTo(mx,m.t+ph);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=ink;ctx.textAlign="left";ctx.textBaseline="top";ctx.fillText("M2 ▸",mx+4,m.t+4);}
+  ctx.textAlign="left";ctx.textBaseline="middle";let ly=m.t+(o.marker!=null?26:8);const lx=m.l+pw-(o.compact?118:200);
+  sets.forEach(S=>{const col=css(S.col)||S.col;ctx.fillStyle=col;ctx.fillRect(lx,ly-5,12,10);ctx.fillStyle=ink;ctx.fillText(S.label,lx+18,ly);ly+=o.compact?14:18;});
+  cv._map={m,pw,ph,xmin,xmax};
+}
+
+/* ======================= 1-3 PATHWAY ======================= */
+const PATH={
+raw:[
+ [{t:"LPS",k:"lig",i:"<p>革蘭氏陰性菌外膜的脂多醣，是本模型的刺激物。</p>"}],
+ [{t:"TLR4／MD-2（CD14 協助）",k:"rec",i:"<p>LPS 經 LBP 與 CD14 交給 TLR4／MD-2 複合體，啟動 MyD88 依賴的訊號。</p>"}],
+ [{t:"MyD88 → IRAK → TRAF6",k:"enz",i:"<p>TRAF6 是分岔點：往下活化 NF-κB 與 MAPK；也會移到粒線體與 ECSIT 結合，增加粒線體 ROS。"+C(21)+"</p>"}],
+ [{t:"NOX2 組裝（p47ᵖʰᵒˣ、Rac）",k:"enz",inh:"DPI",i:"<p>吞噬細胞型 NADPH oxidase。靜止時催化核心位於膜上，p47／p67／p40<sup>phox</sup> 與 Rac 位於細胞質；活化時組裝到膜上，把 O₂ 還原成 O₂•⁻。"+C(20)+"</p><p>RAW 264.7 以 LPS 1 µg/mL 刺激 15 分鐘的 ROS 上升可被 DPI 10 µM 阻斷。"+C(31)+"</p>"},
+  {t:"TRAF6–ECSIT → 粒線體",k:"enz",i:"<p>TLR 訊號使 TRAF6 移至粒線體並與 ECSIT 結合，增加粒線體與細胞 ROS；研究中可在 RAW 細胞觀察到 TRAF6 被招募到粒線體。"+C(21)+"</p>"},
+  {t:"NF-κB → iNOS",k:"enz",i:"<p>NF-κB 誘導發炎基因（包括 iNOS）表現，需要基因轉錄與蛋白合成，屬於較晚期的反應。</p>"}],
+ [{t:"O₂•⁻",k:"ros",i:"<p>NADPH oxidase 與粒線體的初級產物，可經 SOD 歧化成 H₂O₂，或與 NO 反應成 ONOO⁻。"+C(24)+"</p>"},{t:"NO",k:"ros",i:"<p>由 iNOS 產生的活性氮。</p>"}],
+ [{t:"H₂O₂",k:"ros",inh:"NAC",i:"<p>可跨膜擴散。DCFH 不直接與 H₂O₂ 反應，需過氧化酶或過渡金屬參與。"+C(23)+"</p><p>RAW 264.7 以 NAC 10 mM 前處理 1 小時後，再以 LPS 500 ng/mL 刺激 1 小時。"+C(29)+"</p>"},{t:"ONOO⁻",k:"ros",i:"<p>O₂•⁻ 與 NO 形成的過氧亞硝酸根，也能氧化 DCFH，所以 DCF 訊號包含活性氮的貢獻。"+C(22)+"</p>"}],
+ [{t:"DCFH → DCF（綠色螢光）",k:"probe",i:"<p>實驗讀值，反映整體氧化程度，而非單一種 ROS。"+C(22)+C(23)+"</p>"}],
+ [{t:"功能讀值：NO、細胞激素",k:"out",i:"<p>DCF 結果建議搭配 NO（Griess 法）或細胞激素等發炎指標一起解讀。</p>"}]
+],
+rbl:[
+ [{t:"IgE 結合 FcεRI（致敏）",k:"rec",i:"<p>RBL-2H3 細胞表面表現 FcεRI。致敏步驟讓 IgE 先結合在受體上；Suzuki 等人以抗 TNP IgE 0.1 µg/孔隔夜致敏。"+C(7)+"</p>"}],
+ [{t:"多價抗原交聯 FcεRI",k:"lig",i:"<p>以 TNP-BSA 刺激：3 ng/mL 為最低有效劑量（1.4 倍），30 ng/mL 達最大反應（2.6 倍）。改用抗 DNP IgE 加 DNP-BSA 得到相似結果。"+C(7)+"</p><p>以抗 FcεRIα 抗體直接交聯也可引發快速超氧生成。"+C(11)+"</p>"}],
+ [{t:"Lyn／Syk 酪胺酸激酶",k:"enz",inh:"PP1、piceatannol",i:"<p>氧化爆發需要酪胺酸激酶活化：Src 家族抑制劑 PP1 與 Syk 抑制劑 piceatannol 都以劑量依賴方式降低 DCF 訊號。"+C(7)+"</p><p><span class='lv a'>進階</span>抑制 NADPH oxidase 會減弱 Lyn 磷酸化，形成正回饋迴路。"+C(16)+"</p>"}],
+ [{t:"PI3K",k:"enz",inh:"wortmannin、LY294002",i:"<p>PI3K 抑制劑 wortmannin 與 LY294002 以劑量依賴方式降低氧化爆發。"+C(7)+" Thapsigargin 誘導的 ROS 與抗原誘導的 ROS 對 PI3K 的依賴不同。"+C(8)+"</p>"}],
+ [{t:"NAD(P)H oxidase",k:"enz",inh:"DPI（須預培養 30 min）",i:"<p>氧化爆發被 DPI 抑制，作者推測主要來自 NAD(P)H oxidase；DPI ≥ 11 µM 有效、100 µM 約抑制 80%，需預培養 30 分鐘。"+C(7)+"</p><p>RBL-2H3 高量表現 NOX2、p22、p47、p67、p40<sup>phox</sup> 與 Rac1/2。"+C(9)+" DPI 也可抑制 RBL-2H3 的 ROS 生成、酪胺酸磷酸化與組織胺釋放。"+C(10)+"</p>"}],
+ [{t:"H₂O₂（數分鐘內）",k:"ros",inh:"ebselen、NAC",i:"<p>刺激後立即上升，約 5 分鐘達高峰。選擇性 H₂O₂ 清除劑 ebselen 可抑制，且在刺激前才加入也有效。"+C(7)+"</p><p>NAC 10 mM 前處理 1 小時可降低花粉萃取物誘導的 DCF 訊號。"+C(13)+"</p>"}],
+ [{t:"PLCγ／LAT 磷酸化 → 鈣離子流入",k:"enz",i:"<p>阻斷 ROS 生成時，store-operated 鈣離子流入完全消失；DPI 與 ebselen 抑制 PLCγ 與 LAT 的酪胺酸磷酸化。"+C(7)+"</p>"},{t:"DCFH → DCF",k:"probe",i:"<p>實驗讀值。Suzuki 等人以 DCF 與 scopoletin 兩種探針，加上 ebselen 確認含 H₂O₂ 的氧化爆發。"+C(7)+"</p>"}],
+ [{t:"鈣離子下游的 ROS",k:"enz",i:"<p>Inoue 等人指出 ROS 可在鈣離子流入的上游或下游產生，分別與 NADPH oxidase 與粒線體有關；thapsigargin 誘導的 ROS 約延遲 2 分鐘才出現。"+C(8)+"</p><p>粒線體複合體 I 抑制劑 rotenone 對抗原誘導的 DCF 氧化沒有顯著抑制。"+C(7)+"</p>"},
+  {t:"功能讀值：脫顆粒、LTC₄",k:"out",i:"<p>DPI 阻斷氧化爆發會抑制組織胺、β-hexosaminidase 與 LTC₄ 釋放；ebselen 只抑制 LTC₄，不影響脫顆粒。"+C(7)+"</p>"}]
+]};
+let pathLine="raw",pathSel="0-0";
+function drawPath(){
+  const box=$("#chain");box.innerHTML="";
+  PATH[pathLine].forEach((row,ri)=>{
+    if(ri>0){const a=document.createElement("div");a.className="parrow";a.textContent="↓";box.appendChild(a);}
+    const r=document.createElement("div");r.className="prow";
+    row.forEach((n,ci)=>{const id=ri+"-"+ci;const b=document.createElement("button");b.className="pnode k-"+n.k+(pathSel===id?" sel":"");b.innerHTML=n.t+(n.inh?`<span class="inh">⊣ ${n.inh}</span>`:"");b.addEventListener("click",()=>{pathSel=id;drawPath();});r.appendChild(b);});
+    box.appendChild(r);
+  });
+  const[ri,ci]=pathSel.split("-").map(Number);const n=PATH[pathLine][ri][ci];
+  $("#pathInfo").innerHTML=`<h3>${n.t}</h3>${n.i}${n.inh?`<p class="small"><strong>文獻抑制劑：</strong>${n.inh}</p>`:""}<p class="small muted">若 X 能抑制這一層，DCF 訊號應下降；但要再搭配其他實驗才能確定作用點。</p>`;
+}
+segInit("#pathLine",v=>{pathLine=v;pathSel="0-0";drawPath();});
+
+/* ======================= 1-4 DCFH ======================= */
+const DSTEP=[
+ {b:"① 穿膜",t:"DCFH-DA 不帶電、具脂溶性，可擴散穿過細胞膜。"},
+ {b:"② 去乙醯化",t:"細胞內 esterase 切掉兩個乙醯基，形成帶電的 DCFH，因此被留在細胞內；此時仍無螢光。"},
+ {b:"③ 被氧化",t:"DCFH 經過氧化酶或過渡金屬等參與，被多種氧化物（含 ONOO⁻）氧化成高螢光的 DCF。DCFH 不直接與 H₂O₂ 反應。"},
+ {b:"④ 讀取",t:"以約 485–488 nm 激發，於約 527–535 nm 讀取綠色螢光（FITC 通道）。"}
+];
+let dStep=0;
+function drawDcfh(){
+  const seg=$("#dcfhSeg");if(!seg.children.length){DSTEP.forEach((s,i)=>{const b=document.createElement("button");b.textContent=s.b;b.dataset.v=i;seg.appendChild(b);});segInit("#dcfhSeg",v=>{dStep=+v;drawDcfh();});}
+  seg.querySelectorAll("button").forEach((b,i)=>b.setAttribute("aria-pressed",i===dStep?"true":"false"));
+  const ink=css("--ink"),muted=css("--muted"),acc=css("--accent"),s2=css("--surface2"),line=css("--line"),pos=css("--c-pos");
+  const op=i=>i<=dStep?1:.2;
+  const svg=$("#dcfhSvg");
+  svg.innerHTML=`
+  <rect x="200" y="20" width="600" height="260" rx="40" fill="${s2}" stroke="${line}" stroke-width="3"/>
+  <text x="30" y="40" fill="${muted}" font-size="14">細胞外</text><text x="230" y="50" fill="${muted}" font-size="14">細胞內</text>
+  <g opacity="${op(0)}"><rect x="40" y="120" width="120" height="44" rx="22" fill="none" stroke="${ink}" stroke-width="2"/><text x="100" y="147" text-anchor="middle" fill="${ink}" font-size="14">DCFH-DA</text>
+   <path d="M165 142 L235 142" stroke="${ink}" stroke-width="2" marker-end="url(#ar)"/></g>
+  <g opacity="${op(1)}"><rect x="245" y="120" width="120" height="44" rx="22" fill="none" stroke="${ink}" stroke-width="2"/><text x="305" y="147" text-anchor="middle" fill="${ink}" font-size="14">DCFH</text>
+   <text x="305" y="104" text-anchor="middle" fill="${muted}" font-size="12">esterase　−2 乙醯基</text>
+   <path d="M370 142 L440 142" stroke="${ink}" stroke-width="2" marker-end="url(#ar)"/></g>
+  <g opacity="${op(2)}"><circle cx="405" cy="200" r="26" fill="${hexA(pos,.25)}" stroke="${pos}"/><text x="405" y="205" text-anchor="middle" fill="${ink}" font-size="12">ROS/RNS</text>
+   <text x="405" y="250" text-anchor="middle" fill="${muted}" font-size="11">過氧化酶／金屬</text>
+   <circle cx="510" cy="142" r="${dStep>=2?40:24}" fill="${hexA(acc,.35)}"/><rect x="450" y="120" width="120" height="44" rx="22" fill="${hexA(acc,.25)}" stroke="${acc}" stroke-width="2"/><text x="510" y="147" text-anchor="middle" fill="${ink}" font-size="15" font-weight="700">DCF</text></g>
+  <g opacity="${op(3)}"><path d="M640 70 L560 128" stroke="#3b6fe0" stroke-width="3" marker-end="url(#ar)"/><text x="645" y="64" fill="${ink}" font-size="13">激發 485–488 nm</text>
+   <path d="M565 160 L660 220" stroke="${acc}" stroke-width="3" marker-end="url(#ar)"/><text x="665" y="232" fill="${ink}" font-size="13">發射 527–535 nm</text></g>
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${ink}"/></marker></defs>`;
+  $("#dcfhText").innerHTML=DSTEP[dStep].t+(dStep===2?C(22)+C(23):dStep===3?C(7)+C(25):dStep===1?C(23):"");
+}
+
+/* ======================= 2-1 TIMELINE ======================= */
+const TL={
+ raw:[{t:"Day 0",h:"種細胞，貼附過夜",i:"文獻在 6 孔盤每孔約 1–2 × 10⁵ 個細胞。"+C(32)+C(33)},
+      {t:"1–4 h",h:"X／參考抑制劑前處理",i:"多為 LPS 前 1 小時"+C(29)+C(30)+"，也有 4 小時。"+C(32)},
+      {t:"15 min–18 h",h:"LPS 刺激",c:"stim",i:"量測時間點從 15 分鐘"+C(31)+"到 18 小時"+C(30)+C(34)+"都有，請先做時間曲線。"},
+      {t:"20–30 min",h:"DCFH-DA 5–10 µM",c:"key",i:"<strong>刺激結束後才染色。</strong>無血清培養基中，37 °C 避光。"+C(29)+C(30)+C(32)},
+      {t:"",h:"PBS 清洗",i:"清洗 2–3 次，減少細胞外背景。"},
+      {t:"立即",h:"顯微鏡／流式",i:"收細胞重懸於 PBS，避光置冰上盡快上機。"+C(30)+C(32)}],
+ rbl:[{t:"Day 0，隔夜",h:"種細胞＋IgE 致敏",i:"24 孔盤每孔 2 × 10⁵ 個細胞，抗 TNP IgE 0.1 µg/孔，37 °C 隔夜。"+C(7)},
+      {t:"30 min–24 h",h:"X／參考抑制劑前處理",i:"文獻有 30 分鐘"+C(37)+"與 24 小時"+C(38)+"；DPI 須預培養 30 分鐘。"+C(7)},
+      {t:"15–30 min",h:"DCFH-DA 5 µM",c:"key",i:"<strong>刺激之前先載入染劑。</strong>盤式 30 分鐘；流式 15 分鐘（1 × 10⁶ cells/mL，HBSS）。"+C(7)+C(8)},
+      {t:"",h:"清洗、換 HBSS",i:"清洗兩次後懸浮於 HBSS。"+C(7)},
+      {t:"約 5 min",h:"抗原刺激",c:"stim",i:"TNP-BSA 30 ng/mL；DCF 立即上升，約 5 分鐘達高峰。"+C(7)},
+      {t:"立即",h:"置冰上 → 量測",i:"流式樣品在刺激後立即置於冰上。"+C(8)+" 盤式螢光儀可每 40 秒連續讀取。"+C(7)}]
+};
+let tlSel={line:"raw",i:3};
+function drawTL(){
+  ["raw","rbl"].forEach(line=>{const el=$(line==="raw"?"#tlRaw":"#tlRbl");el.innerHTML="";
+    TL[line].forEach((s,i)=>{const b=document.createElement("button");b.className="tlseg"+(s.c?" "+s.c:"");b.setAttribute("aria-pressed",tlSel.line===line&&tlSel.i===i?"true":"false");
+      b.innerHTML=`<span class="t">${s.t||"&nbsp;"}</span>${s.h}`;b.addEventListener("click",()=>{tlSel={line,i};drawTL();});el.appendChild(b);});});
+  const s=TL[tlSel.line][tlSel.i];$("#tlInfo").innerHTML=`<strong>${LINES[tlSel.line].name}：${s.h}</strong>${s.i}`;
+}
+
+/* ======================= 2-2 PLATE ======================= */
+let plateLine="raw",plateSel=0;
+function wellColor(g){if(g.free)return null;const acc=css("--accent");const a=Math.min(1,.08+.2*(g.f||0));return hexA(acc.startsWith("#")?acc:"#0d8a5c",a);}
+function drawPlate(){
+  const P=$("#plate");P.innerHTML="";const gs=GROUPS[plateLine];
+  P.appendChild(Object.assign(document.createElement("div"),{className:"lab"}));
+  for(let c=1;c<=6;c++)P.appendChild(Object.assign(document.createElement("div"),{className:"lab",textContent:c}));
+  "ABCD".split("").forEach((R,ri)=>{P.appendChild(Object.assign(document.createElement("div"),{className:"lab",textContent:R}));
+    for(let c=0;c<6;c++){const gi=ri*3+Math.floor(c/2);const g=gs[gi];const b=document.createElement("button");b.className="well"+(g.free?" empty":"")+((g.f||0)<1.5&&!g.free?" lo":"")+(gi===plateSel?" sel":"");
+      const col=wellColor(g);if(col)b.style.background=col;b.textContent=gi+1;b.title=g.name;b.setAttribute("aria-label",`${R}${c+1}：${g.name}`);
+      b.addEventListener("click",()=>{plateSel=gi;drawPlate();});P.appendChild(b);}});
+  const g=gs[plateSel];
+  $("#wellInfo").innerHTML=`<span class="sim-tag">孔色為模擬強度</span><h3>${plateSel+1}．${g.name} <span class="lv ${g.lv}">${g.lv==="b"?"基本":"進階"}</span></h3><p class="small"><strong>處理：</strong>${g.tr}</p><p class="small"><strong>目的：</strong>${g.why}</p>`;
+  let t=`<thead><tr><th class="num">#</th><th>組別</th><th>處理</th><th>目的</th><th>層級</th></tr></thead><tbody>`;
+  gs.forEach((g,i)=>{t+=`<tr><td class="num">${i+1}</td><td>${g.name}</td><td class="small">${g.tr}</td><td class="small">${g.why}</td><td><span class="lv ${g.lv}">${g.lv==="b"?"基本":"進階"}</span></td></tr>`;});
+  $("#groupTable").innerHTML=t+"</tbody>";
+}
+segInit("#plateLine",v=>{plateLine=v;drawPlate();});
+
+/* ======================= 2-4 MICROSCOPE ======================= */
+let scLine="raw",scMode="fl";
+function fillScGroups(){const s=$("#scGroup");const old=s.value;s.innerHTML="";GROUPS[scLine].forEach(g=>{const o=document.createElement("option");o.value=g.k;o.textContent=g.name;s.appendChild(o);});s.value=GROUPS[scLine].some(g=>g.k===old)?old:"stim";}
+function drawScope(){
+  const cv=$("#scCanvas");const{ctx,w,h}=setup(cv);const g=G(scLine,$("#scGroup").value);
+  let exp=+$("#scExp").value;const auto=$("#scAuto").checked;
+  const r=rng(scLine==="raw"?11:23);const cells=[];
+  if(!g.free){const n=scLine==="raw"?70:42;for(let i=0;i<n;i++){const x=20+r()*(w-40),y=20+r()*(h-40);
+      cells.push(scLine==="raw"?{x,y,rx:8+r()*5,ry:0,a:0,v:Math.exp(.35*gauss(r))}:{x,y,rx:16+r()*10,ry:5+r()*3,a:r()*Math.PI,v:Math.exp(.35*gauss(r))});}}
+  const base=0.16*(g.free?0:g.f);let bgExtra=g.free?0.07:0;
+  if(auto){const peak=Math.max(base*1.6,bgExtra*1.5,0.02);exp=Math.max(10,Math.min(5000,Math.round(0.8*300/peak)));}
+  const k=exp/300;
+  ctx.fillStyle=scMode==="bf"?"#bfc4c2":"#050807";ctx.fillRect(0,0,w,h);
+  if(scMode!=="bf"&&bgExtra>0){ctx.fillStyle=`rgba(80,230,140,${Math.min(.6,bgExtra*k)})`;ctx.fillRect(0,0,w,h);}
+  let sat=0;
+  cells.forEach(c=>{const I=base*c.v*k;if(I>=1)sat++;const Ic=Math.min(1,I);
+    ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.a);ctx.beginPath();
+    if(c.ry)ctx.ellipse(0,0,c.rx,c.ry,0,0,Math.PI*2);else ctx.arc(0,0,c.rx,0,Math.PI*2);
+    if(scMode==="bf"){ctx.fillStyle="rgba(120,128,126,.55)";ctx.fill();ctx.strokeStyle="rgba(40,48,46,.8)";ctx.lineWidth=1.2;ctx.stroke();}
+    else{const gr=ctx.createRadialGradient(0,0,1,0,0,c.rx);gr.addColorStop(0,`rgba(${Math.round(110*Ic)},${Math.round(255*Ic)},${Math.round(150*Ic)},1)`);gr.addColorStop(1,`rgba(${Math.round(10*Ic)},${Math.round(120*Ic)},${Math.round(55*Ic)},${.3+.6*Ic})`);ctx.fillStyle=gr;ctx.fill();
+      if(scMode==="ov"){ctx.strokeStyle="rgba(200,200,200,.45)";ctx.lineWidth=1;ctx.stroke();}
+      if(I>=1){ctx.strokeStyle="rgba(255,60,60,.9)";ctx.lineWidth=1.5;ctx.stroke();}}
+    ctx.restore();});
+  $("#scOv").textContent=`${LINES[scLine].name} · ${g.name} · 曝光 ${exp} ms${auto?"（自動）":""} · 模擬`;
+  $("#scExpV").textContent=exp+" ms";
+  let wmsg="";
+  if(auto)wmsg="自動曝光會把每張影像調到「看起來一樣亮」，組間差異因此消失。比較組別時必須固定曝光。";
+  else if(cells.length&&sat/cells.length>.05)wmsg=`有 ${Math.round(100*sat/cells.length)}% 的細胞飽和（紅框）：飽和後強度被截斷，無法再比較。請降低曝光。`;
+  else if(g.free&&scMode!=="bf")wmsg="無細胞孔：若出現綠色背景，代表 X 在細胞外氧化探針。（此模擬刻意加入淡綠背景示範）";
+  else if(g.auto&&scMode!=="bf")wmsg="X 未染色：此模擬示範 X 帶有微弱自體螢光，會墊高 FITC 通道背景。";
+  $("#scWarn").textContent=wmsg;
+}
+segInit("#scLine",v=>{scLine=v;fillScGroups();drawScope();});
+segInit("#scMode",v=>{scMode=v;drawScope();});
+$("#scGroup").addEventListener("change",drawScope);
+$("#scExp").addEventListener("input",()=>{$("#scAuto").checked=false;drawScope();});
+$("#scAuto").addEventListener("change",drawScope);
+
+/* ======================= 2-5 GATING ======================= */
+let gtLine="raw",gate=null,EV=null;
+function genEvents(line){
+  const r=rng(line==="raw"?77:99);const n=6000;const ev=[];const g=G(line,"stim");const mu=muOf(g);
+  const cF=line==="raw"?.52:.58,cS=line==="raw"?.42:.36;
+  for(let i=0;i<n;i++){const u=r();let e;
+    if(u<.16)e={fsc:.12+.05*gauss(r),ssc:.10+.05*gauss(r),fl:1.4+.35*gauss(r),t:"debris"};
+    else if(u<.22)e={fsc:.84+.05*gauss(r),ssc:.74+.06*gauss(r),fl:mu+LOG10(2)+.26*gauss(r),t:"clump"};
+    else e={fsc:cF+.07*gauss(r),ssc:cS+.07*gauss(r),fl:mu+.26*gauss(r),t:"cell"};
+    e.fsc=Math.max(0,Math.min(1,e.fsc));e.ssc=Math.max(0,Math.min(1,e.ssc));ev.push(e);}
+  return ev;
+}
+const SUGG={raw:{x0:.32,x1:.72,y0:.2,y1:.64},rbl:{x0:.38,x1:.78,y0:.16,y1:.58}};
+function inGate(e){return!gate||(e.fsc>=gate.x0&&e.fsc<=gate.x1&&e.ssc>=gate.y0&&e.ssc<=gate.y1);}
+function drawGate(){
+  if(!EV)EV=genEvents(gtLine);
+  const cv=$("#dotCanvas");const{ctx,w,h}=setup(cv);const m={l:46,r:10,t:10,b:38};const pw=w-m.l-m.r,ph=h-m.t-m.b;
+  ctx.clearRect(0,0,w,h);const ink=css("--ink"),muted=css("--muted"),acc=css("--accent");
+  ctx.strokeStyle=ink;ctx.beginPath();ctx.moveTo(m.l,m.t);ctx.lineTo(m.l,m.t+ph);ctx.lineTo(m.l+pw,m.t+ph);ctx.stroke();
+  ctx.fillStyle=ink;ctx.font="12px "+css("--body");ctx.textAlign="center";ctx.fillText("FSC（線性）",m.l+pw/2,h-12);
+  ctx.save();ctx.translate(14,m.t+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText("SSC（線性）",0,0);ctx.restore();
+  EV.forEach(e=>{ctx.fillStyle=inGate(e)&&gate?hexA(acc,.55):hexA(muted.startsWith("#")?muted:"#5a6b66",.35);ctx.fillRect(m.l+e.fsc*pw,m.t+ph-e.ssc*ph,1.6,1.6);});
+  if(gate){ctx.strokeStyle=acc;ctx.lineWidth=2;ctx.strokeRect(m.l+gate.x0*pw,m.t+ph-gate.y1*ph,(gate.x1-gate.x0)*pw,(gate.y1-gate.y0)*ph);}
+  cv._m={m,pw,ph};
+  const all=Float64Array.from(EV.map(e=>e.fl));const gd=Float64Array.from(EV.filter(inGate).map(e=>e.fl));
+  const sets=[{data:all,col:"--c-unst",label:"全部事件",dash:1,fill:.06}];if(gate&&gd.length)sets.push({data:gd,col:gtLine==="raw"?"--c-stim":"--c-ref",label:"圈選內",bold:1});
+  drawHist($("#gateHist"),sets,{y:"count",compact:1});
+  const sa=stats(all,9),sg=gd.length?stats(gd,9):null;
+  $("#gateStats").innerHTML=[["事件數（全部／圈選）",`${fmt(sa.n)} / ${sg?fmt(sg.n):"—"}`],["Median（全部）",fmt(sa.median)],["Median（圈選）",sg?fmt(sg.median):"—"],["算術平均（全部）",fmt(sa.mean)],["算術平均（圈選）",sg?fmt(sg.mean):"—"]].map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+}
+(function(){const cv=$("#dotCanvas");let st=null;
+  const pt=e=>{const r=cv.getBoundingClientRect();const M=cv._m;const x=(e.clientX-r.left-M.m.l)/M.pw,y=1-(e.clientY-r.top-M.m.t)/M.ph;return[Math.max(0,Math.min(1,x)),Math.max(0,Math.min(1,y))];};
+  cv.addEventListener("pointerdown",e=>{st=pt(e);cv.setPointerCapture(e.pointerId);});
+  cv.addEventListener("pointermove",e=>{if(!st)return;const p=pt(e);gate={x0:Math.min(st[0],p[0]),x1:Math.max(st[0],p[0]),y0:Math.min(st[1],p[1]),y1:Math.max(st[1],p[1])};drawGate();});
+  cv.addEventListener("pointerup",()=>{st=null;});})();
+$("#gateSuggest").addEventListener("click",()=>{gate={...SUGG[gtLine]};drawGate();});
+$("#gateAll").addEventListener("click",()=>{gate=null;drawGate();});
+segInit("#gtLine",v=>{gtLine=v;EV=null;gate=null;drawGate();});
+
+/* ======================= 3-1 AVG CALC ======================= */
+function avgCalc(){const v=$("#avgIn").value.split(/[\s,，]+/).map(Number).filter(x=>isFinite(x)&&x>0);
+  if(!v.length){$("#avgOut").textContent="請輸入至少一個大於 0 的數值。";return;}
+  const n=v.length,mean=v.reduce((a,b)=>a+b,0)/n,g=Math.pow(10,v.reduce((a,b)=>a+LOG10(b),0)/n),s=[...v].sort((a,b)=>a-b),med=n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2;
+  $("#avgOut").innerHTML=`n = ${n}<br>算術平均 = ${fmt(mean,1)}<br>幾何平均 = ${fmt(g,1)}<br>中位數 = ${fmt(med,1)}`;}
+$("#avgIn").addEventListener("input",avgCalc);
+
+/* ======================= 3-2 HISTOGRAM LAB ======================= */
+let hsLine="raw",hsY="count",hsMarker=null,HS=null;
+function hsBuild(){const keys=["unst","veh","stim",$("#hsDose").value];if($("#hsRef").checked)keys.push("ref");
+  HS=keys.map((k,i)=>{const g=G(hsLine,k);return{g,data:sample(g,10000,(hsLine==="raw"?100:200)+i*7+(k.charCodeAt(1)||0))};});
+  if(hsMarker==null){const v=HS.find(x=>x.g.k==="veh");hsMarker=quant(Float64Array.from(v.data).sort(),.98);}}
+function drawHS(){
+  if(!HS)hsBuild();
+  const sets=HS.map(x=>({data:x.data,col:x.g.col,label:x.g.name,bold:x.g.k==="stim"||x.g.k.startsWith("x"),fill:x.g.k==="unst"?.06:.12,dash:x.g.k==="unst"}));
+  drawHist($("#hsCanvas"),sets,{y:hsY,marker:hsMarker});
+  const S=HS.map(x=>({g:x.g,s:stats(x.data,hsMarker)}));const veh=S.find(x=>x.g.k==="veh").s,stim=S.find(x=>x.g.k==="stim").s;
+  let t=`<thead><tr><th>組別</th><th class="num">Median</th><th class="num">gMean</th><th class="num">算術平均</th><th class="num">%positive</th><th class="num">Fold（median）</th><th class="num">抑制率</th></tr></thead><tbody>`;
+  S.forEach(({g,s})=>{const inh=(g.k.startsWith("x")||g.k==="ref")?(100*(stim.median-s.median)/(stim.median-veh.median)):null;
+    t+=`<tr><td><span class="swatch" style="display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;background:${css(g.col)}"></span>${g.name}</td><td class="num">${fmt(s.median)}</td><td class="num">${fmt(s.gmean)}</td><td class="num">${fmt(s.mean)}</td><td class="num">${fmt(s.pos,1)}%</td><td class="num">${g.k==="unst"?"—":fmt(s.median/veh.median,2)}</td><td class="num">${inh==null?"—":fmt(inh,0)+"%"}</td></tr>`;});
+  $("#hsTable").innerHTML=t+"</tbody>";
+  const x=S.find(o=>o.g.k.startsWith("x"));const inhX=100*(stim.median-x.s.median)/(stim.median-veh.median);
+  $("#hsExplain").innerHTML=`<strong>這張圖怎麼讀</strong>${LINES[hsLine].name}：${LINES[hsLine].stim}使整群細胞右移（fold ≈ ${fmt(stim.median/veh.median,2)}）。${x.g.name}的分布介於對照與刺激組之間，以 median 計算的抑制率約 ${fmt(inhX,0)}%。注意算術平均永遠高於 median，因為對數常態分布的右尾會把它拉高。%positive 隨 marker 位置改變；整群右移時 %positive 容易誇大或飽和，此情境以 MFI 與抑制率報告較合適。（模擬數據）`;
+}
+(function(){const cv=$("#hsCanvas");let drag=false;
+  const xv=e=>{const r=cv.getBoundingClientRect();const M=cv._map;return M.xmin+(M.xmax-M.xmin)*Math.max(0,Math.min(1,(e.clientX-r.left-M.m.l)/M.pw));};
+  cv.addEventListener("pointerdown",e=>{const M=cv._map;if(!M)return;const r=cv.getBoundingClientRect();const px=M.m.l+M.pw*(hsMarker-M.xmin)/(M.xmax-M.xmin);if(Math.abs(e.clientX-r.left-px)<14){drag=true;cv.setPointerCapture(e.pointerId);}});
+  cv.addEventListener("pointermove",e=>{const M=cv._map;if(!M)return;const r=cv.getBoundingClientRect();const px=M.m.l+M.pw*(hsMarker-M.xmin)/(M.xmax-M.xmin);cv.style.cursor=Math.abs(e.clientX-r.left-px)<14||drag?"ew-resize":"default";if(drag){hsMarker=xv(e);drawHS();}});
+  cv.addEventListener("pointerup",()=>{drag=false;});})();
+segInit("#hsLine",v=>{hsLine=v;HS=null;hsMarker=null;drawHS();});
+segInit("#hsY",v=>{hsY=v;drawHS();});
+$("#hsDose").addEventListener("change",()=>{HS=null;drawHS();});
+$("#hsRef").addEventListener("change",()=>{HS=null;drawHS();});
+$("#hsMarker").addEventListener("click",()=>{hsMarker=null;HS=null;drawHS();});
+
+/* ======================= 3-4 BAR CHART ======================= */
+let barLine="raw",barY="fold";
+const BKEYS=["veh","stim","ref","ref2","xL","xM","xH","xOnly"];
+const DAYF=[1,1.45,.72];
+function barData(line){const r=rng(line==="raw"?501:777);const out={};
+  BKEYS.forEach(k=>{const g=G(line,k);out[k]=DAYF.map(d=>({fold:k==="veh"?1:g.f*(1+.07*gauss(r)),day:d}));});
+  BKEYS.forEach(k=>out[k].forEach((o,i)=>{o.raw=180*o.day*o.fold;const st=out.stim[i].fold;o.inh=100*(st-o.fold)/(st-1);}));return out;}
+function drawBar(){
+  const cv=$("#barCanvas");const{ctx,w,h}=setup(cv);const D=barData(barLine);const ink=css("--ink"),muted=css("--muted"),line=css("--line");
+  const keys=barY==="inh"?["ref","ref2","xL","xM","xH"]:BKEYS;
+  const vals=keys.map(k=>D[k].map(o=>barY==="raw"?o.raw:barY==="fold"?o.fold:o.inh));
+  const m={l:58,r:14,t:16,b:62};const pw=w-m.l-m.r,ph=h-m.t-m.b;ctx.clearRect(0,0,w,h);ctx.font="12px "+css("--body");
+  let ymax=Math.max(...vals.flat())*1.15;let ymin=Math.min(0,...vals.flat());if(barY==="inh"){ymax=Math.max(100,ymax);}
+  const nice=v=>{const p=Math.pow(10,Math.floor(LOG10(v)));const f=v/p;return(f<=1?1:f<=2?2:f<=5?5:10)*p;};const st=nice((ymax-ymin)/5);ymax=Math.ceil(ymax/st)*st;
+  const toY=v=>m.t+ph-ph*(v-ymin)/(ymax-ymin);
+  ctx.textAlign="right";ctx.textBaseline="middle";for(let y=ymin;y<=ymax+1e-9;y+=st){const yy=Math.round(toY(y))+.5;ctx.strokeStyle=line;ctx.beginPath();ctx.moveTo(m.l,yy);ctx.lineTo(m.l+pw,yy);ctx.stroke();ctx.fillStyle=muted;ctx.fillText(fmt(y,barY==="fold"?1:0),m.l-6,yy);}
+  ctx.strokeStyle=ink;ctx.beginPath();ctx.moveTo(m.l,m.t);ctx.lineTo(m.l,m.t+ph);ctx.moveTo(m.l,toY(0));ctx.lineTo(m.l+pw,toY(0));ctx.stroke();
+  const bw=pw/keys.length;const dayCol=["--ink","--c-pos","--c-ref"];
+  keys.forEach((k,i)=>{const g=G(barLine,k);const v=vals[i];const mean=v.reduce((a,b)=>a+b,0)/v.length;const sd=Math.sqrt(v.reduce((a,b)=>a+(b-mean)**2,0)/(v.length-1));
+    const x=m.l+bw*i+bw*.18,bwi=bw*.64;ctx.fillStyle=hexA(css(g.col),.55);const y0=toY(0),y1=toY(mean);ctx.fillRect(x,Math.min(y0,y1),bwi,Math.abs(y1-y0));
+    ctx.strokeStyle=ink;ctx.lineWidth=1.2;if(barY!=="raw"){const cx=x+bwi/2;ctx.beginPath();ctx.moveTo(cx,toY(mean-sd));ctx.lineTo(cx,toY(mean+sd));ctx.moveTo(cx-6,toY(mean+sd));ctx.lineTo(cx+6,toY(mean+sd));ctx.moveTo(cx-6,toY(mean-sd));ctx.lineTo(cx+6,toY(mean-sd));ctx.stroke();}
+    v.forEach((val,j)=>{ctx.fillStyle=css(dayCol[j]);ctx.beginPath();ctx.arc(x+bwi*(.25+.25*j),toY(val),3.6,0,Math.PI*2);ctx.fill();});
+    ctx.save();ctx.fillStyle=ink;ctx.textAlign="right";ctx.textBaseline="middle";ctx.translate(x+bwi/2,m.t+ph+10);ctx.rotate(-Math.PI/5);ctx.fillText(g.name,0,0);ctx.restore();});
+  ctx.save();ctx.fillStyle=ink;ctx.textAlign="center";ctx.translate(14,m.t+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText(barY==="raw"?"Median MFI（a.u.）":barY==="fold"?"Fold change（vs 未刺激對照）":"抑制率（%）",0,0);ctx.restore();
+  ctx.textAlign="left";ctx.textBaseline="middle";["第 1 天","第 2 天（PMT 較高）","第 3 天（PMT 較低）"].forEach((t,j)=>{ctx.fillStyle=css(dayCol[j]);ctx.beginPath();ctx.arc(m.l+12+j*150,m.t+6,4,0,Math.PI*2);ctx.fill();ctx.fillStyle=ink;ctx.fillText(t,m.l+20+j*150,m.t+6);});
+  const msg={raw:"原始 MFI：三天的點散得很開，因為第 2、3 天的 PMT 電壓不同；直接平均會得到很大的誤差，看不出組間差異。",
+    fold:"Fold change：每一天各自除以當天的未刺激對照，消除了電壓差異，三天的點收斂，組間差異清楚。長條＝平均，誤差線＝SD。",
+    inh:"抑制率：以當天的刺激組與未刺激對照為 0% 與 100% 的端點換算。X 呈劑量依賴；參考抑制劑用來確認模型可被抑制。"};
+  $("#barExplain").innerHTML=`<strong>${LINES[barLine].name}</strong>${msg[barY]}（模擬數據）`;
+}
+segInit("#barLine",v=>{barLine=v;drawBar();});
+segInit("#barY",v=>{barY=v;drawBar();});
+
+/* ======================= 3-5 QUIZ ======================= */
+const QZ=[
+ {lv:"b",q:"DCFH-DA 進入細胞後，被哪一類酵素切除乙醯基而留在細胞內？",o:["Esterase（酯酶）","NADPH oxidase","Superoxide dismutase","Peroxidase"],a:0,e:"Esterase 去乙醯化形成帶電的 DCFH，因此留在細胞內。"+C(23)},
+ {lv:"b",q:"流式細胞儀讀 DCF 螢光，應使用哪個組合？",o:["405 nm 雷射、450 nm 通道","488 nm 雷射、約 530 nm（FITC）通道","561 nm 雷射、585 nm 通道","640 nm 雷射、660 nm 通道"],a:1,e:"文獻以 488 nm 激發、530 nm 讀取。"+C(7)},
+ {lv:"b",q:"RBL-2H3 以抗原刺激後，DCF 訊號大約多久達到高峰？",o:["約 5 分鐘","約 1 小時","約 6 小時","約 24 小時"],a:0,e:"抗原刺激後立即上升，約 5 分鐘達高峰。"+C(7)},
+ {lv:"b",q:"為什麼 RBL-2H3 要先載入 DCFH-DA 再加抗原，而 RAW 264.7 常在 LPS 刺激後才染色？",o:["RBL-2H3 沒有 esterase","抗原誘導的 ROS 在數分鐘內就發生，LPS 誘導的 ROS 可在數十分鐘到數小時後量測","LPS 會破壞 DCFH-DA","抗原會與 DCF 結合"],a:1,e:"兩種刺激的時間尺度不同，染劑必須在反應發生時已經在細胞內。"+C(7)+C(30)},
+ {lv:"b",q:"X 最高濃度使 DCF 下降 60%，但同濃度 MTT 存活率只有 55%。最合理的結論是？",o:["X 是強效 ROS 抑制劑","無法判定；DCF 下降可能來自細胞毒性，應改用無毒濃度","X 會增加 ROS","應改用算術平均重算"],a:1,e:"毒性會讓細胞變少或狀態變差，DCF 也跟著下降。"+C(32)},
+ {lv:"b",q:"無細胞孔（培養基＋X＋DCFH-DA）出現明顯綠色螢光，代表？",o:["細胞產生大量 ROS","X 在細胞外氧化探針或產生 H₂O₂，可能造成假訊號","DCFH-DA 已失效","應提高曝光"],a:1,e:"花粉萃取物在無細胞時即可使 DCFH-DA 產生螢光；多酚在培養基中也會產生 H₂O₂。"+C(13)+C(26)},
+ {lv:"b",q:"顯微鏡拍攝各組時勾選「自動曝光」會造成什麼問題？",o:["影像變模糊","各組被調整成相近亮度，組間差異消失","細胞會死亡","DCF 會變成紅色"],a:1,e:"比較組別時必須固定曝光與增益。"},
+ {lv:"b",q:"未刺激對照 median = 200、刺激組 = 500、X＋刺激 = 350，抑制率是多少？",o:["30%","50%","70%","150%"],a:1,e:"(500 − 350) ÷ (500 − 200) × 100 = 50%。"},
+ {lv:"a",q:"在 RBL-2H3，DPI 若在抗原刺激前才加入，結果如何？",o:["同樣有效","無效，需預培養 30 分鐘","反而增加 ROS","會使細胞脫落"],a:1,e:"DPI 需預培養 30 分鐘才有效；刺激前才加入 11–100 µM 皆無效。"+C(7)},
+ {lv:"a",q:"在 RBL-2H3，以 ebselen 選擇性清除 H₂O₂ 的結果是？",o:["同時抑制 LTC₄ 與脫顆粒","抑制 LTC₄ 分泌，但不影響脫顆粒","兩者都不受影響","只抑制脫顆粒"],a:1,e:"這說明不同功能讀值對 ROS 的依賴不同。"+C(7)},
+ {lv:"a",q:"關於 DCF 訊號，以下哪個敘述正確？",o:["DCF 上升等於 H₂O₂ 上升","DCFH 可被多種氧化物（含 ONOO⁻）氧化，DCF 反映整體氧化程度","DCFH 直接與 H₂O₂ 快速反應","DCF 只在粒線體中產生"],a:1,e:C(22)+C(23)},
+ {lv:"a",q:"Chen 等人發現多酚降低肥大細胞的 ROS 與組織胺釋放，同時細胞激素 mRNA 卻上升。這提醒我們？",o:["DCF 下降就代表全面抗發炎","ROS 下降不等於所有發炎指標都下降，需搭配功能讀值","多酚會破壞 DCF","應改用 RAW 264.7"],a:1,e:C(19)},
+ {lv:"a",q:"三天實驗的 PMT 電壓不同，合併統計應使用？",o:["原始 MFI 直接平均","每天各自計算的 fold change","%positive 的總和","事件數"],a:1,e:"Fold change 以同一天、同一設定的對照為分母，可消除儀器設定差異。"+C(25)}
+];
+let qAns={};
+function drawQuiz(){const box=$("#quizBox");box.innerHTML="";
+  QZ.forEach((q,i)=>{const d=document.createElement("div");d.className="q";
+    d.innerHTML=`<div class="qh"><span class="qn">Q${String(i+1).padStart(2,"0")}</span><span class="lv ${q.lv}">${q.lv==="b"?"基本":"進階"}</span><strong>${q.q}</strong></div><div class="opts"></div><div class="fb" hidden></div>`;
+    const os=d.querySelector(".opts"),fb=d.querySelector(".fb");
+    q.o.forEach((t,j)=>{const b=document.createElement("button");b.className="opt";b.textContent=String.fromCharCode(65+j)+". "+t;
+      if(qAns[i]!=null){if(j===q.a)b.classList.add("right");else if(j===qAns[i])b.classList.add("wrong");b.disabled=true;}
+      b.addEventListener("click",()=>{if(qAns[i]!=null)return;qAns[i]=j;drawQuiz();});os.appendChild(b);});
+    if(qAns[i]!=null){fb.hidden=false;fb.innerHTML=(qAns[i]===q.a?"<strong style='color:var(--good)'>答對。</strong> ":"<strong style='color:var(--bad)'>答錯。</strong> 正確答案："+String.fromCharCode(65+q.a)+"。 ")+q.e;}
+    box.appendChild(d);});
+  const n=Object.keys(qAns).length,c=Object.entries(qAns).filter(([i,j])=>QZ[i].a===j).length;$("#qScore").textContent=`已作答 ${n} / ${QZ.length}，答對 ${c}`;}
+$("#qReset").addEventListener("click",()=>{qAns={};drawQuiz();});
+
+/* ======================= 05 GLOSSARY ======================= */
+const GL=[
+["Ag","Antigen","抗原"],
+["ATCC","American Type Culture Collection","美國菌種保存中心"],
+["BMMC","Bone marrow-derived mast cell","骨髓衍生肥大細胞"],
+["BSA","Bovine serum albumin","牛血清白蛋白"],
+["BSL","Biosafety level","生物安全等級"],
+["CD14","Cluster of differentiation 14","分化簇 14"],
+["CGA","Chlorogenic acid","綠原酸"],
+["DCF","2′,7′-Dichlorofluorescein","二氯螢光素"],
+["DCFH","2′,7′-Dichlorodihydrofluorescein","二氯二氫螢光素"],
+["DCFH-DA（DCFDA、H₂DCFDA）","2′,7′-Dichlorodihydrofluorescein diacetate","二氯二氫螢光素二乙酸酯"],
+["DMEM","Dulbecco's modified Eagle medium","杜貝可改良伊格爾培養基"],
+["DMSO","Dimethyl sulfoxide","二甲基亞碸"],
+["DNP","Dinitrophenyl","二硝基苯基"],
+["DPI","Diphenyleneiodonium","二苯基碘鎓（暫譯）"],
+["DUOX","Dual oxidase","雙氧化酶"],
+["ECSIT","Evolutionarily conserved signaling intermediate in Toll pathways","Toll 路徑演化保守訊息中介蛋白（暫譯）"],
+["EMEM","Eagle's minimum essential medium","伊格爾最低必需培養基"],
+["FBS","Fetal bovine serum","胎牛血清"],
+["FcεRI","High-affinity IgE receptor (Fc epsilon receptor I)","高親和力 IgE 受體"],
+["FITC","Fluorescein isothiocyanate","異硫氰酸螢光素"],
+["FSC","Forward scatter","前向散射"],
+["gMFI","Geometric mean fluorescence intensity","幾何平均螢光強度"],
+["H₂O₂","Hydrogen peroxide","過氧化氫"],
+["HBSS","Hanks' balanced salt solution","漢克氏平衡鹽溶液"],
+["HSA","Human serum albumin","人血清白蛋白"],
+["IgE","Immunoglobulin E","免疫球蛋白 E"],
+["iNOS","Inducible nitric oxide synthase","誘導型一氧化氮合成酶"],
+["IRAK","Interleukin-1 receptor-associated kinase","介白素-1 受體相關激酶"],
+["LAT","Linker for activation of T cells","T 細胞活化連接蛋白"],
+["LBP","LPS-binding protein","脂多醣結合蛋白"],
+["L-NMMA","NG-Monomethyl-L-arginine","N-單甲基-L-精胺酸"],
+["LPS","Lipopolysaccharide","脂多醣"],
+["LTC₄","Leukotriene C4","白三烯素 C4"],
+["MD-2","Myeloid differentiation factor 2","骨髓分化因子 2"],
+["MFI","Mean (or median) fluorescence intensity","平均（或中位）螢光強度"],
+["MTT","3-(4,5-Dimethylthiazol-2-yl)-2,5-diphenyltetrazolium bromide","MTT 四唑鹽（細胞存活試驗試劑）"],
+["MyD88","Myeloid differentiation primary response 88","骨髓分化初級反應蛋白 88"],
+["NAC","N-Acetylcysteine","N-乙醯半胱胺酸"],
+["NADPH","Nicotinamide adenine dinucleotide phosphate (reduced)","還原態菸鹼醯胺腺嘌呤二核苷酸磷酸"],
+["NF-κB","Nuclear factor kappa B","核因子 κB"],
+["NO","Nitric oxide","一氧化氮"],
+["NOX","NADPH oxidase","NADPH 氧化酶"],
+["O₂•⁻","Superoxide anion","超氧陰離子"],
+["ONOO⁻","Peroxynitrite","過氧亞硝酸根"],
+["PBS","Phosphate-buffered saline","磷酸鹽緩衝生理食鹽水"],
+["PI3K","Phosphatidylinositol 3-kinase","磷脂醯肌醇 3-激酶"],
+["PLCγ","Phospholipase C gamma","磷脂酶 Cγ"],
+["PMA","Phorbol 12-myristate 13-acetate","佛波醇肉豆蔻酸乙酸酯"],
+["PMT","Photomultiplier tube","光電倍增管"],
+["RBL-2H3","Rat basophilic leukemia cell line, clone 2H3","大鼠嗜鹼性白血病細胞株 2H3"],
+["RNS","Reactive nitrogen species","活性氮物種"],
+["ROS","Reactive oxygen species","活性氧物種"],
+["SOCE","Store-operated calcium entry","鈣庫調控性鈣離子流入"],
+["SOD","Superoxide dismutase","超氧化物歧化酶"],
+["SSC","Side scatter","側向散射"],
+["TBHP","tert-Butyl hydroperoxide","第三丁基過氧化氫"],
+["TG","Thapsigargin","毒胡蘿蔔素"],
+["TLR4","Toll-like receptor 4","類鐸受體 4"],
+["TNP","Trinitrophenyl","三硝基苯基"],
+["TRAF6","TNF receptor-associated factor 6","腫瘤壞死因子受體相關因子 6"],
+["—","Autofluorescence","自體螢光"],
+["—","Basophil","嗜鹼性球"],
+["—","Deacetylation","去乙醯化"],
+["—","Degranulation","脫顆粒"],
+["—","Doublet","雙細胞事件"],
+["—","Ebselen","依布硒啉（暫譯）"],
+["—","Esterase","酯酶"],
+["—","Gating","圈選"],
+["—","Histogram","直方圖"],
+["—","Ionomycin","離子黴素"],
+["—","A23187 (calcimycin)","鈣離子載體 A23187"],
+["—","LY294002","LY294002（PI3K 抑制劑）"],
+["—","Macrophage","巨噬細胞"],
+["—","Mast cell","肥大細胞"],
+["—","Photobleaching","光漂白"],
+["—","Photo-oxidation","光氧化"],
+["—","Piceatannol","白皮杉醇"],
+["—","Pretreatment","前處理"],
+["—","Quercetin","槲皮素"],
+["—","Rotenone","魚藤酮"],
+["—","Sensitization","致敏"],
+["—","Wortmannin","渥曼青黴素"],
+["—","β-Hexosaminidase","β-己糖胺酶"]
+];
+const key=s=>s.replace(/[^A-Za-z0-9]/g,"").toLowerCase();
+GL.sort((a,b)=>{const da=a[0]==="—",db=b[0]==="—";if(da!==db)return da?1:-1;return da?key(a[1]).localeCompare(key(b[1])):key(a[0]).localeCompare(key(b[0]));});
+function drawGlos(){const q=$("#glosQ").value.trim().toLowerCase();const rows=GL.filter(r=>!q||r.join(" ").toLowerCase().includes(q));
+  $("#glosTable tbody").innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");$("#glosN").textContent=`共 ${rows.length} / ${GL.length} 筆`;}
+$("#glosQ").addEventListener("input",drawGlos);
+
+/* ======================= CITE COMMAS (only for directly adjacent citations) ======================= */
+function markCites(root){(root.querySelectorAll?root:document).querySelectorAll("a.cite").forEach(a=>{const p=a.previousSibling;a.classList.toggle("cc",!!(p&&p.nodeType===1&&p.classList&&p.classList.contains("cite")));});}
+new MutationObserver(()=>markCites(document)).observe(document.body,{childList:true,subtree:true});
+/* ======================= INIT ======================= */
+function all(){drawPath();drawDcfh();drawTL();drawPlate();fillScGroups();drawScope();drawGate();avgCalc();drawHS();drawBar();drawQuiz();drawGlos();}
+all();markCites(document);
+let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{drawScope();drawGate();drawHS();drawBar();},150);});
+if(window.matchMedia)window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{drawPath();drawDcfh();drawPlate();drawScope();drawGate();drawHS();drawBar();});
+})();
+</script>
+</body>
+</html>
