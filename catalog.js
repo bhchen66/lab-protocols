@@ -7,7 +7,7 @@ window.CATALOG = {
   "meta": {
     "title": "實驗操作互動講義",
     "subtitle": "各實驗的原理、虛擬操作流程與數據分析練習。點按表頭可排序。",
-    "updated": "2026-11-17"
+    "updated": "2026-11-18"
   },
   "columns": [
     {
@@ -106,21 +106,6 @@ window.CATALOG = {
       "cell": "RBL-2H3",
       "topic": "β-hexosaminidase 脫顆粒",
       "stimulus": "A23187 + PMA",
-      "version": "v1",
-      "updated": "2026-11-17",
-      "superseded": []
-    },
-    {
-      "id": "L005",
-      "status": "active",
-      "file": "DCFDA 量測前處理抑制 ROS (RAW 264.7 與 RBL-2H3) v1.html",
-      "title": "以 DCFDA 量測待測物前處理對 ROS 的抑制",
-      "cell": [
-        "RAW 264.7",
-        "RBL-2H3"
-      ],
-      "topic": "ROS 抑制（DCFDA；螢光顯微鏡＋流式）",
-      "stimulus": "LPS／IgE＋抗原",
       "version": "v1",
       "updated": "2026-11-17",
       "superseded": []
